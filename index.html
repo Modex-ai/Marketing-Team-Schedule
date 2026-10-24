@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vendoor — Team Operations</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+  :root { color-scheme: light;
+    --teal:#0d3b3b; --teal2:#14504e; --teal3:#20504e;
+    --gold:#f0b848; --gold2:#d9a12e;
+    --cream:#faf8f3; --cream2:#f0ede5; --paper:#f6f4ee;
+    --ink:#142b2b; --mut:#6f8280; --line:#e5e0d4;
+    --red:#a31414; --mid:#3d7d75;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
+  body { font-family:-apple-system,"SF Pro Display","Segoe UI",Inter,Roboto,Arial,sans-serif; background:var(--paper); color:var(--ink); font-size:14.5px; -webkit-font-smoothing:antialiased; }
+  /* ---------- HERO ---------- */
+  #hero { background:var(--teal); color:#fff; padding:26px 0 92px; }
+  .hin { max-width:1180px; margin:0 auto; padding:0 26px; }
+  .hbar { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+  .logo { font-size:27px; font-weight:800; letter-spacing:-.02em; }
+  .logo-sub { display:block; color:var(--gold); font-size:12px; letter-spacing:.22em; text-transform:uppercase; margin-top:3px; font-weight:600; }
+  .hright { text-align:right; }
+  .badge { display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:800; letter-spacing:.12em; padding:4px 12px; border-radius:99px; }
+  .badge.live { background:rgba(240,184,72,.15); color:var(--gold); border:1px solid rgba(240,184,72,.4); }
+  .badge.snap { background:rgba(255,255,255,.1); color:#cfe0de; border:1px solid rgba(255,255,255,.25); }
+  .badge .d { width:6px; height:6px; border-radius:50%; background:currentColor; animation:pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity:.35; } }
+  #updated { font-size:11.5px; color:#9db4b1; margin-top:7px; }
+  .btn-gold { margin-top:9px; padding:8px 16px; border-radius:99px; border:0; background:var(--gold); color:var(--teal); font-weight:800; cursor:pointer; font-size:12.5px; font-family:inherit; letter-spacing:.01em; }
+  .btn-gold:hover { background:#f6c96a; }
+  .hnow { margin-top:38px; }
+  .hnow .k { color:var(--gold); font-size:12px; letter-spacing:.22em; text-transform:uppercase; font-weight:700; }
+  .hnow h1 { font-size:clamp(28px,4.5vw,44px); font-weight:800; letter-spacing:-.03em; margin-top:8px; line-height:1.12; }
+  .hnow .sub { color:#b8cbc9; font-size:14px; margin-top:8px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+  .chip { display:inline-flex; align-items:center; gap:9px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13); border-radius:99px; padding:6px 15px 6px 6px; font-size:13px; color:#eef4f3; }
+  .chip i { font-style:normal; width:28px; height:28px; border-radius:50%; background:var(--gold); color:var(--teal); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; }
+  .chip small { color:#9db4b1; font-size:11px; }
+  .chip.offc { opacity:.45; }
+  /* ---------- BODY ---------- */
+  .wrap { max-width:1180px; margin:0 auto; padding:0 26px 60px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-top:-58px; position:relative; }
+  .kpi { background:#fff; border-radius:18px; padding:18px 20px; box-shadow:0 10px 30px rgba(13,59,59,.08); }
+  .kpi .v { font-size:32px; font-weight:800; letter-spacing:-.03em; color:var(--teal); line-height:1; }
+  .kpi .v em { font-style:normal; font-size:16px; color:var(--mut); font-weight:700; }
+  .kpi .l { font-size:10.5px; color:var(--mut); margin-top:8px; text-transform:uppercase; letter-spacing:.14em; font-weight:700; }
+  .kpi .s { font-size:11.5px; margin-top:5px; color:var(--mut); }
+  .kpi .s b.up { color:var(--mid); } .kpi .s b.warn { color:var(--red); }
+  /* segmented nav */
+  .seg { display:inline-flex; background:var(--cream2); border-radius:99px; padding:4px; margin:26px 0 20px; gap:2px; flex-wrap:wrap; }
+  .seg button { border:0; background:transparent; font-family:inherit; font-size:13px; font-weight:700; padding:8px 20px; border-radius:99px; cursor:pointer; color:#5c6f6d; }
+  .seg button.on { background:var(--teal); color:#fff; box-shadow:0 3px 10px rgba(13,59,59,.25); }
+  /* cards */
+  .card { background:#fff; border-radius:20px; padding:22px 24px; margin-bottom:16px; box-shadow:0 4px 18px rgba(13,59,59,.05); }
+  .card h2 { font-size:15px; font-weight:800; letter-spacing:-.01em; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .card h2 .sub2 { font-size:12px; color:var(--mut); font-weight:500; display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .cols2 { display:grid; grid-template-columns:1.12fr .88fr; gap:16px; }
+  @media (max-width:900px){ .cols2 { grid-template-columns:1fr; } }
+  /* attention */
+  .att { list-style:none; }
+  .att li { display:flex; gap:13px; padding:12px 0; border-bottom:1px solid #f0ece2; line-height:1.5; align-items:flex-start; }
+  .att li:last-child { border-bottom:0; }
+  .att .dot { flex:0 0 auto; width:10px; height:10px; border-radius:50%; margin-top:6px; }
+  .dot.red { background:var(--red); } .dot.amber { background:var(--gold2); } .dot.ok { background:var(--mid); }
+  .att b { color:var(--teal); }
+  .att .why { display:block; color:var(--mut); font-size:12.5px; margin-top:2px; }
+  /* tables */
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; color:var(--mut); font-size:10.5px; text-transform:uppercase; letter-spacing:.13em; padding:10px 9px; border-bottom:2px solid var(--cream2); white-space:nowrap; font-weight:700; }
+  td { padding:11px 9px; border-bottom:1px solid #f0ece2; vertical-align:top; }
+  tr.today-row td { background:#fdf4dd; }
+  .pill { display:inline-block; padding:3px 13px; border-radius:99px; font-size:11px; font-weight:800; white-space:nowrap; letter-spacing:.02em; }
+  .p-morning { background:var(--gold); color:var(--teal); }
+  .p-night { background:var(--teal); color:#fff; }
+  .p-mid { background:var(--mid); color:#fff; }
+  .p-off { background:#eceade; color:#a7a595; }
+  .p-resigned { background:var(--red); color:#fff; }
+  .p-active { background:#e2efe9; color:#1f6b52; }
+  .resp { color:#4d6361; font-size:12px; margin-top:4px; }
+  .time { color:var(--mut); font-size:11px; margin-top:2px; }
+  .ok { color:var(--mid); font-weight:800; font-size:12px; }
+  .muted { color:var(--mut); }
+  .note { background:#faf3e2; border-left:3px solid var(--gold); border-radius:8px; padding:8px 13px; font-size:12.5px; color:#7c5c14; }
+  .chartbox { position:relative; }
+  select, input[type=date] { padding:8px 14px; border-radius:99px; border:1px solid var(--line); background:#fff; font-family:inherit; font-size:12.5px; color:var(--ink); font-weight:600; }
+  .btn { padding:8px 16px; border-radius:99px; border:0; background:var(--teal); color:#fff; font-weight:800; cursor:pointer; font-size:12px; font-family:inherit; }
+  .btn:hover { background:var(--teal2); }
+  .editable { cursor:pointer; }
+  .editable:hover { opacity:.78; outline:2px dashed var(--gold); outline-offset:2px; border-radius:4px; }
+  #floatEdit { position:fixed; z-index:9999; background:#fff; border:1.5px solid var(--teal); border-radius:10px; box-shadow:0 4px 18px rgba(0,0,0,.18); padding:8px; display:none; min-width:170px; }
+  #floatEdit select,#floatEdit textarea { display:block; width:100%; font-size:13px; font-family:inherit; padding:6px 8px; border:1px solid #c5bfaf; border-radius:7px; background:#fff; color:var(--teal); font-weight:600; box-sizing:border-box; cursor:pointer; }
+  #floatEdit textarea { resize:vertical; min-height:70px; font-weight:400; }
+  #floatEdit .fe-label { font-size:10px; font-weight:800; color:var(--mut); text-transform:uppercase; letter-spacing:.08em; margin-bottom:5px; }
+  #floatEdit .fe-actions { display:flex; gap:6px; margin-top:7px; }
+  #floatEdit .fe-save { flex:1; padding:6px; border:0; border-radius:7px; background:var(--teal); color:#fff; font-weight:800; font-size:12px; cursor:pointer; font-family:inherit; }
+  #floatEdit .fe-cancel { padding:6px 10px; border:0; border-radius:7px; background:#e6e0d0; color:var(--teal); font-weight:700; font-size:12px; cursor:pointer; font-family:inherit; }
+  .note-btn { font-size:11px; color:var(--mut); cursor:pointer; border:1px dashed #c5bfaf; border-radius:5px; padding:2px 7px; margin-top:3px; display:inline-block; }
+  .note-btn:hover { border-color:var(--gold); color:var(--teal); }
+  .rangelbl { font-size:11px; color:var(--mut); font-weight:700; text-transform:uppercase; letter-spacing:.1em; }
+  /* people grid */
+  .pgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:14px; }
+  .rrow { display:flex; align-items:center; gap:10px; margin-top:8px; font-size:12px; }
+  .rlab { flex:0 0 118px; color:#4d6361; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rtrack { flex:1; height:8px; border-radius:4px; background:#edeadf; overflow:hidden; }
+  .rtrack i { display:block; height:100%; border-radius:4px; }
+  .rval { flex:0 0 76px; text-align:right; font-weight:800; color:var(--teal); }
+  .rval small { color:var(--mut); font-weight:600; }
+  .sec { font-size:10.5px; color:var(--mut); text-transform:uppercase; letter-spacing:.13em; font-weight:700; margin-top:15px; }
+  .seg2 { display:inline-flex; background:var(--cream2); border-radius:99px; padding:3px; gap:2px; }
+  .seg2 button { border:0; background:transparent; font-family:inherit; font-size:11.5px; font-weight:700; padding:6px 13px; border-radius:99px; cursor:pointer; color:#5c6f6d; }
+  .seg2 button.on { background:var(--teal); color:#fff; }
+  .pcard { border:1px solid var(--line); border-radius:16px; padding:16px; background:var(--cream); }
+  .pcard .top { display:flex; align-items:center; gap:12px; margin-bottom:13px; }
+  .avatar { width:42px; height:42px; border-radius:50%; background:var(--teal); color:var(--gold); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex:0 0 auto; }
+  .pcard .nm { font-weight:800; font-size:14px; color:var(--teal); }
+  .pcard .id { font-size:11px; color:var(--mut); }
+  .pcard .row { display:flex; justify-content:space-between; font-size:12px; color:#4d6361; margin-top:7px; }
+  .pcard .row b { color:var(--teal); }
+  .wbar { height:7px; border-radius:4px; background:#e8e4d8; overflow:hidden; margin-top:10px; display:flex; }
+  .wbar i { display:block; height:100%; }
+  /* log timeline */
+  .tl { list-style:none; position:relative; padding-left:22px; }
+  .tl:before { content:""; position:absolute; left:6px; top:6px; bottom:6px; width:2px; background:var(--cream2); }
+  .tl li { position:relative; padding:9px 0 9px 8px; }
+  .tl li:before { content:""; position:absolute; left:-21px; top:15px; width:10px; height:10px; border-radius:50%; background:var(--gold); border:2px solid #fff; box-shadow:0 0 0 2px var(--gold); }
+  .tl .d { font-size:11px; color:var(--mut); font-weight:700; text-transform:uppercase; letter-spacing:.1em; }
+  .tl .t { margin-top:2px; line-height:1.55; }
+  .duty-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(215px,1fr)); gap:11px; }
+  .duty { border:1px solid var(--line); border-radius:14px; padding:13px 14px; background:var(--cream); }
+  .duty .nm { font-weight:800; font-size:13px; margin-bottom:7px; color:var(--teal); }
+  canvas#cardCanvas { width:100%; max-width:680px; border-radius:16px; display:block; box-shadow:0 8px 24px rgba(13,59,59,.12); }
+  .err { background:#fdebeb; color:var(--red); padding:16px; border-radius:14px; font-weight:600; }
+  #loading { color:var(--mut); text-align:center; padding:70px 0; }
+  footer { margin-top:30px; font-size:11px; color:#b0ab9c; text-align:center; letter-spacing:.06em; }
+</style>
+</head>
+<body>
+<!--DATA-->
+<div id="hero">
+  <div class="hin">
+    <div class="hbar">
+      <div><span class="logo">vendoor</span><span class="logo-sub">Team Operations</span></div>
+      <div class="hright">
+        <span id="srcBadge"></span>
+        <div id="updated"></div>
+        <button class="btn-gold" id="exportBtn" style="display:none">⬇ Update Shareable Copy</button>
+      </div>
+    </div>
+    <div class="hnow" id="hnow" style="display:none">
+      <div class="k" id="nowKick">RIGHT NOW</div>
+      <h1 id="nowHead">—</h1>
+      <div class="sub" id="nowSub"></div>
+      <div class="chips" id="nowChips"></div>
+    </div>
+  </div>
+</div>
+<div class="wrap">
+  <div id="floatEdit">
+    <div class="fe-label" id="feLabel">Edit</div>
+    <select id="feSelect" style="display:none"></select>
+    <textarea id="feText" style="display:none" placeholder="Note for this day…"></textarea>
+    <div class="fe-actions">
+      <button class="fe-save" onclick="floatSave()">Save</button>
+      <button class="fe-cancel" onclick="floatClose()">Cancel</button>
+    </div>
+  </div>
+  <div id="loading">Loading schedule…</div>
+  <div id="app" style="display:none">
+    <div class="kpis" id="kpis"></div>
+    <nav class="seg" id="tabs">
+      <button class="on" data-v="overview">Overview</button>
+      <button data-v="schedule">Schedule</button>
+      <button data-v="reports">Reports</button>
+      <button data-v="analytics">People</button>
+      <button data-v="cards">Cards</button>
+      <button data-v="log">Log</button>
+    </nav>
+    <div id="v-overview">
+      <div class="cols2">
+        <div class="card">
+          <h2>Needs Attention <span class="sub2">ranked by impact</span></h2>
+          <ul class="att" id="attention"></ul>
+        </div>
+        <div class="card">
+          <h2>Coverage <span class="sub2">staff on duty per day · 6 weeks</span></h2>
+          <div class="chartbox" style="height:170px"><canvas id="covChart"></canvas></div>
+          <h2 style="margin-top:22px">Shift Mix <span class="sub2">full period</span></h2>
+          <div class="chartbox" style="height:150px"><canvas id="mixChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span id="dutyTitle">Day Detail</span>
+          <span class="sub2"><input type="date" id="dayPick" title="Pick a date"> <span id="dutyDate"></span></span></h2>
+        <div class="duty-grid" id="dutyGrid"></div>
+        <div id="dutyNote" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div id="v-schedule" style="display:none">
+      <div class="card">
+        <h2><span>Weekly Schedule</span>
+          <span class="sub2"><select id="weekSel"></select> <button class="btn" id="weekDlBtn">⬇ Week PNG</button> <span id="inlineToast" style="font-size:12px;font-weight:700;margin-left:8px"></span></span></h2>
+        <div style="overflow-x:auto" id="weekTable"></div>
+      </div>
+    </div>
+    <div id="v-reports" style="display:none">
+      <div class="card" style="padding:16px 24px">
+        <h2 style="margin-bottom:0">Daily Reports
+          <span class="sub2"><select id="repMember"></select> <select id="repPeriod"></select> <span class="rangelbl">From</span> <input type="date" id="repFrom"> <span class="rangelbl">To</span> <input type="date" id="repTo"></span></h2>
+      </div>
+      <div id="repLoading" class="card muted" style="display:none">Loading daily reports from the team sheets…</div>
+      <div id="repErr"></div>
+      <div id="repBody" style="display:none">
+        <div class="kpis" id="repKpis" style="margin-top:0"></div>
+        <div class="cols2" style="margin-top:16px">
+          <div class="card"><h2>Sales Trend <span class="sub2" id="trendSub"></span></h2><div class="chartbox" style="height:210px"><canvas id="salesChart"></canvas></div></div>
+          <div class="card"><h2>Sales by Member <span class="sub2">total in selected range</span></h2><div class="chartbox" style="height:210px"><canvas id="memChart"></canvas></div></div>
+        </div>
+        <div class="card"><h2>Daily Entries <span class="sub2"><span id="repCount"></span> <button class="btn" id="repAllBtn" style="display:none">Show all</button></span></h2><div style="overflow-x:auto" id="repTable"></div></div>
+        <div class="card"><h2>Feedback Log <span class="sub2">operations &amp; customer feedback</span></h2><ul class="tl" id="fbList"></ul></div>
+      </div>
+    </div>
+    <div id="v-analytics" style="display:none">
+      <div class="card" style="padding:16px 24px">
+        <h2 style="margin-bottom:0">Report Filter
+          <span class="sub2"><select id="periodSel"></select> <span class="rangelbl">From</span> <input type="date" id="rangeFrom"> <span class="rangelbl">To</span> <input type="date" id="rangeTo"> <span id="rangeLabel" class="muted">full period</span></span></h2>
+      </div>
+      <div class="card">
+        <h2>Team Overall <span class="sub2">totals for the selected period</span></h2>
+        <div class="cols2" id="overallBox"></div>
+      </div>
+      <div class="card">
+        <h2>Workload by Member <span class="sub2">shift counts per person in selected range</span></h2>
+        <div class="chartbox" style="height:270px"><canvas id="teamChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Per-Person Breakdown
+          <span class="sub2"><span class="seg2" id="modeSeg"><button data-m="own" class="on">% of own schedule</button><button data-m="team">Share of team total</button></span></span></h2>
+        <p class="muted" id="modeHint" style="font-size:12px;margin-bottom:8px"></p>
+        <div class="pgrid" id="peopleGrid"></div>
+      </div>
+    </div>
+    <div id="v-cards" style="display:none">
+      <div class="card">
+        <h2>Member Card
+          <span class="sub2"><select id="cardMember"></select> <select id="cardWeek"></select> <button class="btn" id="dlBtn">⬇ Download PNG</button></span></h2>
+        <p class="muted" style="font-size:12px;margin-bottom:14px">Vendoor-branded personal schedule — download and send directly on WhatsApp.</p>
+        <canvas id="cardCanvas"></canvas>
+      </div>
+    </div>
+    <div id="v-log" style="display:none">
+      <div class="card">
+        <h2>Change Log <span class="sub2" id="logCount"></span></h2>
+        <ul class="tl" id="logList"></ul>
+      </div>
+    </div>
+  </div>
+  <footer>VENDOOR · TEAM OPERATIONS — synced with Google Sheets</footer>
+</div>
+<script>
+const FILE_ID = "1KGP-n9QmyAAV9DNaoXeRvzz5MYaqhi7G8ieeU8CWPes";
+const TOOL = "mcp__85b584c7-f58f-45f9-89db-9fee6d55db8f__read_file_content";
+const SHEETS_TOOL     = "mcp__d1384f4f-7156-4983-b28f-016f724c9b64__get_values";
+const SHEETS_META     = "mcp__d1384f4f-7156-4983-b28f-016f724c9b64__get_spreadsheet";
+const SHEETS_UPDATE   = "mcp__d1384f4f-7156-4983-b28f-016f724c9b64__update_values";
+const ALIAS = { "Suhila": "Suhaila Magdy", "Sohaila": "Sohaila M.", "Habiba": "Habiba" };
+// ▼ بعد ما تعمل Deploy للـ Apps Script، الصق لينك الـ Web App هنا (اختياري — يحل مشكلة الريبورتات نهائياً)
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDRZEnKORjd1Zv1LWoN_o_zn0EsTD91Hf2G4ehmLlY1SMd9kLtHW-Nbw8eS4UGiLcR/exec";
+let weeks = [], A = null, weekIdx = 0, charts = {}, allRows = [], curPer = null, selDate = null, rawMd = "";
+let repMode = "own", curReport = null;
+
+const SHIFT = s => {
+  const t = (s||"").trim().toLowerCase();
+  if (t.startsWith("morning")) return ["morning","Morning","p-morning"];
+  if (t.startsWith("night")) return ["night","Night","p-night"];
+  if (t.startsWith("mid")) return ["mid","Mid","p-mid"];
+  if (t.startsWith("resigned")) return ["resigned","Resigned","p-resigned"];
+  return ["off","Off","p-off"];
+};
+const esc = s => (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const sameDay = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+const fmtD = d => d.toLocaleDateString("en-US",{ weekday:"long", month:"short", day:"numeric", year:"numeric" });
+const fmtS = d => d.toLocaleDateString("en-US",{ month:"short", day:"numeric" });
+const iso = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+const fromIso = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const totP = p => p.morning + p.mid + p.night;
+const initials = n => n.split(/\s+/).map(w => w[0]).slice(0,2).join("").toUpperCase();
+
+function parse(md){
+  const out = [];
+  let cur = null;
+  for (const line of md.split("\n")) {
+    if (!line.trim().startsWith("|")) { cur = null; continue; }
+    const cells = line.split("|").slice(1,-1).map(c => c.trim().replace(/\\_/g,"_"));
+    if (cells[0] === "Day" && cells[1] === "Date") {
+      const people = [];
+      for (let i = 2; i < cells.length; i += 3) {
+        const n = cells[i];
+        if (!n || /^Approved/i.test(n)) break;
+        let name = n.replace(/\s*\(.*?\)\s*/g," ").trim();
+        name = ALIAS[name] || name;
+        const idm = n.match(/\((\d+)\)/);
+        people.push({ name, id: idm ? idm[1] : "", col: i });
+      }
+      cur = { people, aIdx: 2 + people.length*3, rows: [] };
+      out.push(cur);
+      continue;
+    }
+    if (cur && cells[1] && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(cells[1])) {
+      const [d,m,y] = cells[1].split("/").map(Number);
+      cur.rows.push({
+        day: cells[0].trim(), date: new Date(y, m-1, d),
+        entries: cur.people.map(p => ({ name:p.name, shift:cells[p.col]||"", resp:cells[p.col+1]||"", time:cells[p.col+2]||"" })),
+        approved: cells[cur.aIdx]||"", note: cells[cur.aIdx+1]||""
+      });
+    }
+  }
+  return out.filter(w => w.rows.length);
+}
+
+function analyze(){
+  const per = {}, daily = [], adj = [], firstSeen = {}, resigned = new Set();
+  weeks.forEach((w,wi) => {
+    w.people.forEach(p => { if (!(p.name in firstSeen)) firstSeen[p.name] = wi; });
+    for (const r of w.rows) {
+      let working = 0;
+      for (const e of r.entries) {
+        const [k] = SHIFT(e.shift);
+        if (k === "resigned") { resigned.add(e.name); continue; }
+        const p = per[e.name] ??= { morning:0, mid:0, night:0, off:0 };
+        p[k]++;
+        if (k !== "off") working++;
+      }
+      daily.push({ date:r.date, working });
+      if (r.note) adj.push({ date:r.date, day:r.day, note:r.note });
+    }
+  });
+  const latestTeam = weeks[weeks.length-1].people.map(p => p.name).filter(n => !resigned.has(n));
+  const workDays = daily.filter(d => d.working > 0);
+  const avgCov = workDays.reduce((s,d) => s + d.working, 0) / (workDays.length || 1);
+  const minCov = workDays.reduce((m,d) => d.working < m.working ? d : m, workDays[0]);
+  const pauses = daily.filter(d => d.working === 0);
+  let tot = { morning:0, mid:0, night:0, off:0 };
+  for (const n in per) for (const k in tot) tot[k] += per[n][k];
+  const pendingWeeks = weeks.filter(w => !w.rows.some(r => r.approved));
+  return { per, daily, adj, firstSeen, resigned, latestTeam, avgCov, minCov, pauses, tot, pendingWeeks };
+}
+function shiftsOf(n){ const p = A.per[n]; return p ? totP(p) : 0; }
+
+/* ---------- HERO: RIGHT NOW ---------- */
+function renderHero(){
+  const now = new Date(), h = now.getHours();
+  let win = null, kick = "RIGHT NOW", label = "";
+  if (h >= 11 && h < 19) { win = "Morning"; label = "on the morning shift"; }
+  else if (h >= 19 || h < 3) { win = "Night"; label = "on tonight's shift"; }
+  let d = new Date(now);
+  if (h < 3) d.setDate(d.getDate()-1);
+  let row = allRows.find(r => sameDay(r.date, d));
+  const head = document.getElementById("nowHead"), sub = document.getElementById("nowSub"),
+        chips = document.getElementById("nowChips");
+  document.getElementById("hnow").style.display = "";
+  if (!row) {
+    for (const r of allRows) if (r.date <= d && (!row || r.date > row.date)) row = r;
+    if (!row) return;
+    head.textContent = "Schedule loaded";
+    sub.textContent = "Latest scheduled day: " + fmtD(row.date);
+    return;
+  }
+  const on = [], offs = [];
+  for (const e of row.entries) {
+    const [,lbl] = SHIFT(e.shift);
+    if (win && (lbl === win || lbl === "Mid")) on.push(e);
+    else if (lbl === "Off") offs.push(e.name);
+  }
+  if (!win) {
+    head.textContent = "Off hours";
+    sub.textContent = "Shifts run 11:00 AM – 3:00 AM · " + fmtD(now);
+    const next = row.entries.filter(e => SHIFT(e.shift)[1] === "Morning");
+    chips.innerHTML = next.map(e => chipHtml(e, true)).join("");
+    if (next.length) sub.textContent += " · Next up (morning): ";
+    return;
+  }
+  head.textContent = on.length + (on.length === 1 ? " person " : " people ") + label;
+  sub.textContent = fmtD(now) + (row.approved ? "  ·  ✓ schedule approved" : "  ·  approval pending") +
+                    (offs.length ? "  ·  off today: " + offs.join(", ") : "");
+  chips.innerHTML = on.map(e => chipHtml(e)).join("");
+}
+function chipHtml(e, dim){
+  const r = (e.resp||"").replace(/\s+/g," ").trim();
+  const short = r.length > 26 ? r.slice(0,25) + "…" : r;
+  return `<span class="chip${dim?' offc':''}"><i>${initials(e.name)}</i>${esc(e.name)} <small>· ${esc(short)}</small></span>`;
+}
+
+/* ---------- KPIs ---------- */
+function renderKpis(){
+  const totalShifts = A.tot.morning + A.tot.mid + A.tot.night;
+  const nightShare = Math.round(A.tot.night / totalShifts * 100);
+  const wNow = weeks[weeks.length-1], wPrev = weeks[weeks.length-2];
+  const count = w => { let c = 0; for (const r of w.rows) for (const e of r.entries) if (!["off","resigned"].includes(SHIFT(e.shift)[0])) c++; return c; };
+  const cNow = count(wNow), cPrev = wPrev ? count(wPrev) : cNow;
+  const delta = cNow - cPrev;
+  const first = weeks[0].rows[0].date, last = wNow.rows.at(-1).date;
+  document.getElementById("kpis").innerHTML = [
+    [A.latestTeam.length, "Active Team", A.resigned.size ? `${A.resigned.size} departure this period` : "current roster"],
+    [cNow, "Shifts This Week", `<b class="${delta>=0?'up':'warn'}">${delta>=0?"+":""}${delta}</b> vs last week`],
+    [A.avgCov.toFixed(1), "Avg Daily Coverage", `thinnest day: ${A.minCov.working} on duty`],
+    [nightShare + "<em>%</em>", "Night Share", "of all worked shifts"],
+    [(() => { const cut = new Date(Date.now() - 7*864e5); return A.pendingWeeks.filter(w => w.rows.at(-1).date >= cut).length; })(), "Pending Approvals", (() => { const cut = new Date(Date.now() - 7*864e5); const n = A.pendingWeeks.filter(w => w.rows.at(-1).date >= cut).length; return n ? `<b class="warn">current/upcoming weeks</b>` : "recent weeks signed off"; })()]
+  ].map(([v,l,s]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div><div class="s">${s}</div></div>`).join("");
+}
+
+/* ---------- NEEDS ATTENTION ---------- */
+function renderAttention(){
+  const out = [];
+  const today = new Date();
+  const curWeek = weeks.find(w => w.rows[0].date <= today && w.rows.at(-1).date >= today);
+  if (curWeek && !curWeek.rows.some(r => r.approved))
+    out.push(["red", `<b>Approve this week's schedule.</b><span class="why">Week of ${fmtS(curWeek.rows[0].date)} has no sign-off yet — the team is working an unapproved plan.</span>`]);
+  A.pendingWeeks.filter(w => w !== curWeek && w.rows[0].date > today).forEach(w =>
+    out.push(["amber", `<b>Upcoming week unapproved.</b><span class="why">Week of ${fmtS(w.rows[0].date)} still needs sign-off.</span>`]));
+  const ahead = A.daily.filter(x => x.date >= today && x.working > 0 && x.working <= 3).slice(0,3);
+  if (ahead.length)
+    out.push(["amber", `<b>Thin coverage ahead.</b><span class="why">${ahead.map(x => fmtD(x.date) + " — only " + x.working + " on duty").join(" · ")}</span>`]);
+  const team = A.latestTeam;
+  const nightRank = [...team].sort((a,b) => (A.per[b]?.night||0) - (A.per[a]?.night||0));
+  if (nightRank.length > 1) {
+    const t = nightRank[0], med = A.per[nightRank[Math.floor(nightRank.length/2)]]?.night || 0;
+    if ((A.per[t]?.night||0) > med * 1.5 && (A.per[t]?.night||0) - med >= 5)
+      out.push(["amber", `<b>${esc(t)} is carrying the nights.</b><span class="why">${A.per[t].night} night shifts vs team median ${med} — rotate to avoid burnout.</span>`]);
+  }
+  const ranked = [...team].sort((a,b) => shiftsOf(b) - shiftsOf(a));
+  if (ranked.length > 1) {
+    const top = ranked[0], low = ranked.at(-1);
+    if (shiftsOf(low) > 0 && shiftsOf(top) / shiftsOf(low) > 1.35)
+      out.push(["amber", `<b>Workload gap.</b><span class="why">${esc(top)} has ${shiftsOf(top)} shifts vs ${esc(low)}'s ${shiftsOf(low)} — consider rebalancing.</span>`]);
+  }
+  if (!out.length) out.push(["ok", `<b>All clear.</b><span class="why">Schedule approved, coverage healthy, workload balanced.</span>`]);
+  out.push(["ok", `<b>${A.adj.length} adjustments logged</b> since ${fmtS(weeks[0].rows[0].date)}.<span class="why">Full history in the Log tab.</span>`]);
+  document.getElementById("attention").innerHTML =
+    out.map(([c,t]) => `<li><span class="dot ${c}"></span><span>${t}</span></li>`).join("");
+}
+
+/* ---------- DAY DETAIL ---------- */
+function entryCell(e, meta){
+  // meta = {wk, ri, ei, sheet, row, shiftCol, respCol, timeCol} — optional; enables inline editing
+  const [k,lbl,cls] = SHIFT(e.shift);
+  const da = meta ? `data-sheet="${esc(meta.sheet)}" data-row="${meta.row}" data-val="${esc(e.shift)}"` : "";
+  let h = meta
+    ? `<span class="pill ${cls} editable" ${da} data-col="${meta.shiftCol}" onclick="inlineEdit(this,'shift',${meta.wk},${meta.ri},${meta.ei})">${lbl}</span>`
+    : `<span class="pill ${cls}">${lbl}</span>`;
+  if (k !== "off" && k !== "resigned") {
+    if (e.resp) h += meta
+      ? `<div class="resp editable" ${da} data-col="${meta.respCol}" data-val="${esc(e.resp)}" onclick="inlineEdit(this,'resp',${meta.wk},${meta.ri},${meta.ei})">${esc(e.resp)}</div>`
+      : `<div class="resp">${esc(e.resp)}</div>`;
+    if (e.time) h += meta
+      ? `<div class="time editable" ${da} data-col="${meta.timeCol}" data-val="${esc(e.time)}" onclick="inlineEdit(this,'time',${meta.wk},${meta.ri},${meta.ei})">${esc(e.time)}</div>`
+      : `<div class="time">${esc(e.time)}</div>`;
+  }
+  return h;
+}
+
+/* ---------- WRITE-BACK (Edit mode) ---------- */
+// colToLetter: 1-based index → spreadsheet letter (A=1, Z=26, AA=27 …)
+function colToLetter(n){ let s=""; while(n>0){s=String.fromCharCode(64+(n%26||26))+s;n=Math.floor((n-1)/26);} return s; }
+
+async function writeCell(sheetTitle, sheetRow, colIdx, value){
+  const range = "'" + sheetTitle.replace(/'/g,"''") + "'!" + colToLetter(colIdx) + sheetRow;
+  if (window.cowork) {
+    // Inside Claude — use Sheets MCP directly (fetch() is blocked by CSP)
+  } else if (APPS_SCRIPT_URL) {
+    // Standalone HTML — fetch() works fine
+    const resp = await fetch(APPS_SCRIPT_URL + "?action=update", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ sheetTitle, rowIdx: sheetRow, colIdx, value })
+    });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+  }
+  if (window.cowork) {
+    const r = await window.cowork.callMcpTool(SHEETS_UPDATE, {
+      spreadsheetId: FILE_ID,
+      range,
+      values: [[value]]
+    });
+    if (r.isError) {
+      const detail = r.content?.[0]?.text || JSON.stringify(r.structuredContent || "");
+      throw new Error(detail || "Sheets write error");
+    }
+  } else {
+    throw new Error("No write path — open in Claude or use standalone HTML with APPS_SCRIPT_URL.");
+  }
+}
+
+// Collect all unique values for a given field across all loaded weeks
+function uniqueFieldValues(field) {
+  const set = new Set();
+  for (const w of weeks) {
+    for (const r of w.rows) {
+      for (const e of r.entries) {
+        const v = (e[field] || "").trim();
+        if (v) set.add(v);
+      }
+    }
+  }
+  return [...set].sort();
+}
+
+/* ---------- FLOATING EDIT POPUP ---------- */
+let _fe = null; // current edit context
+
+function inlineEdit(el, field, wk, ri, ei) {
+  const rect = el.getBoundingClientRect();
+  const sheet = el.dataset.sheet, row = +el.dataset.row, col = +el.dataset.col;
+  const currentVal = el.dataset.val !== undefined ? el.dataset.val : el.textContent.trim();
+
+  const popup = document.getElementById("floatEdit");
+  const feSelect = document.getElementById("feSelect");
+  const feText   = document.getElementById("feText");
+  const feLabel  = document.getElementById("feLabel");
+
+  const labels = {shift:"Shift",resp:"Responsibility",time:"Time",approved:"Status",note:"Note"};
+  feLabel.textContent = labels[field] || field;
+
+  const isText = field === "note";
+  feSelect.style.display = isText ? "none" : "";
+  feText.style.display   = isText ? "" : "none";
+
+  if (isText) {
+    feText.value = currentVal;
+  } else {
+    // For "approved" use fixed options; for others derive from live data
+    const opts = field === "approved"
+      ? ["Approve", "Decline"]
+      : uniqueFieldValues(field);
+    feSelect.innerHTML = "";
+    // Always add a blank/current-value fallback first if not in list
+    if (!opts.includes(currentVal) && currentVal)
+      feSelect.add(new Option(currentVal, currentVal, true, true));
+    for (const o of opts) {
+      const opt = new Option(o, o);
+      opt.selected = (o === currentVal);
+      feSelect.add(opt);
+    }
+    // If nothing selected yet, select by current val
+    feSelect.value = currentVal;
+  }
+
+  // Position popup — below element by default, flip above if too close to bottom
+  popup.style.display = "block";
+  const popW = popup.offsetWidth || 180;
+  const popH = popup.offsetHeight || 140;
+  let left = rect.left;
+  let top  = rect.bottom + 6;
+  // Flip above if popup would go off the bottom of the viewport
+  if (top + popH > window.innerHeight - 8) top = rect.top - popH - 6;
+  // Keep within left/right bounds
+  if (left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
+  if (left < 8) left = 8;
+  popup.style.left = left + "px";
+  popup.style.top  = Math.max(8, top) + "px";
+
+  _fe = { sheet, row, col, wk, ri, ei, field };
+  setTimeout(() => isText ? feText.focus() : feSelect.focus(), 50);
+}
+
+async function floatSave() {
+  if (!_fe) return floatClose();
+  const { sheet, row, col, wk, ri, ei, field } = _fe;
+  const feSelect = document.getElementById("feSelect");
+  const feText   = document.getElementById("feText");
+  const value = field === "note" ? feText.value : feSelect.value;
+  floatClose();
+
+  // Update in-memory immediately
+  const r = weeks[wk]?.rows[ri];
+  if (r) {
+    const e = r.entries?.[ei];
+    if      (field === "shift"    && e) e.shift    = value;
+    else if (field === "resp"     && e) e.resp     = value;
+    else if (field === "time"     && e) e.time     = value;
+    else if (field === "approved")      r.approved = value;
+    else if (field === "note")          r.note     = value;
+  }
+  renderWeek();
+
+  const toast = document.getElementById("inlineToast");
+  try {
+    await writeCell(sheet, row, col, value);
+    if (toast) { toast.textContent = "✓ Saved"; toast.style.color = "#3d7d75"; setTimeout(() => toast.textContent = "", 2000); }
+  } catch(err) {
+    if (toast) { toast.textContent = "✕ " + err.message; toast.style.color = "#c0392b"; }
+  }
+}
+
+function floatClose() {
+  document.getElementById("floatEdit").style.display = "none";
+  _fe = null;
+}
+
+// Close popup when clicking outside
+document.addEventListener("click", e => {
+  const popup = document.getElementById("floatEdit");
+  if (popup && popup.style.display !== "none" && !popup.contains(e.target) && !e.target.classList.contains("editable") && !e.target.closest(".editable")) floatClose();
+}, true);
+function renderDuty(sel){
+  const today = new Date();
+  let row = null, title;
+  if (sel) {
+    row = allRows.find(r => sameDay(r.date, sel));
+    title = sameDay(sel, today) ? "Today" : (sel < today ? "Day Detail — Past" : "Day Detail — Upcoming");
+    if (!row) {
+      document.getElementById("dutyTitle").textContent = "Day Detail";
+      document.getElementById("dutyDate").textContent = fmtD(sel);
+      document.getElementById("dutyGrid").innerHTML = '<div class="muted">No schedule recorded for this date.</div>';
+      document.getElementById("dutyNote").innerHTML = "";
+      return;
+    }
+  } else {
+    row = allRows.find(r => sameDay(r.date, today));
+    title = row ? "Today" : "Latest Scheduled Day";
+    if (!row) for (const r of allRows) if (r.date <= today && (!row || r.date > row.date)) row = r;
+    if (!row) row = allRows.at(-1);
+  }
+  document.getElementById("dutyTitle").textContent = title;
+  document.getElementById("dutyDate").textContent = fmtD(row.date) + (row.approved ? " · ✓ Approved" : " · Pending approval");
+  const order = e => ({ morning:0, mid:1, night:2, off:3, resigned:4 })[SHIFT(e.shift)[0]];
+  const ents = [...row.entries].sort((a,b) => order(a) - order(b));
+  document.getElementById("dutyGrid").innerHTML = ents.map(e => `<div class="duty"><div class="nm">${esc(e.name)}</div>${entryCell(e)}</div>`).join("");
+  document.getElementById("dutyNote").innerHTML = row.note ? `<div class="note" dir="auto">${esc(row.note)}</div>` : "";
+}
+
+/* ---------- WEEK TABLE ---------- */
+function renderWeek(){
+  const w = weeks[weekIdx];
+  const today = new Date();
+  const wt = w.title || "";
+  const canEdit = !!(APPS_SCRIPT_URL || window.cowork) && !!wt;
+
+  let h = `<table><thead><tr><th>Day</th>${w.people.map(p => `<th>${esc(p.name)}</th>`).join("")}<th>Status</th></tr></thead><tbody>`;
+  for (let ri = 0; ri < w.rows.length; ri++) {
+    const r = w.rows[ri];
+    const sr = r._sheetRow || 0;
+    const aIdx = r._aIdx || 0;
+    h += `<tr class="${sameDay(r.date,today)||(selDate&&sameDay(r.date,selDate))?"today-row":""}"><td><b>${r.day}</b><div class="time">${fmtS(r.date)}</div></td>`;
+
+    for (let ei = 0; ei < w.people.length; ei++) {
+      const p = w.people[ei];
+      const e = r.entries.find(x => x.name === p.name);
+      const meta = (canEdit && e && sr) ? {
+        wk: weekIdx, ri, ei,
+        sheet: wt, row: sr,
+        shiftCol: e._shiftCol||0, respCol: e._respCol||0, timeCol: e._timeCol||0
+      } : null;
+      h += `<td>${e ? entryCell(e, meta) : ""}</td>`;
+    }
+
+    // Status (Approved) — clickable if editable
+    const appCol = aIdx + 1;
+    if (canEdit && sr) {
+      const appDa = `data-sheet="${esc(wt)}" data-row="${sr}" data-col="${appCol}" data-val="${esc(r.approved)}"`;
+      h += `<td><span class="${r.approved?"ok":"muted"} editable" ${appDa} onclick="inlineEdit(this,'approved',${weekIdx},${ri},-1)">${r.approved?"✓ Approved":"Pending"}</span></td></tr>`;
+    } else {
+      h += `<td>${r.approved?'<span class="ok">✓ Approved</span>':'<span class="muted">Pending</span>'}</td></tr>`;
+    }
+    // Note row — always show button if editable, show content if exists
+    if (r.note || (canEdit && sr)) {
+      const noteCol = aIdx + 2; // column Y
+      const noteDa = canEdit && sr ? `data-sheet="${esc(wt)}" data-row="${sr}" data-col="${noteCol}" data-val="${esc(r.note)}"` : "";
+      const noteBtn = canEdit && sr ? `<span class="note-btn editable" ${noteDa} onclick="inlineEdit(this,'note',${weekIdx},${ri},-1)">📝 ${r.note ? "Edit note" : "Add note"}</span>` : "";
+      if (r.note)
+        h += `<tr><td colspan="${w.people.length+2}"><div class="note" dir="auto">${esc(r.note)} ${noteBtn}</div></td></tr>`;
+      else if (noteBtn)
+        h += `<tr><td colspan="${w.people.length+2}">${noteBtn}</td></tr>`;
+    }
+  }
+  document.getElementById("weekTable").innerHTML = h + "</tbody></table>";
+}
+
+/* ---------- DETAILED REPORT ---------- */
+const RESP_CAT = r => {
+  const t = (r||"").toLowerCase();
+  if (t.includes("whatsapp")) return "WhatsApp / Styllano";
+  if (t.includes("porto") || t.includes("modex") || t.includes("beblark")) return "Modex / Porto";
+  if (t.includes("follow")) return "Follow up";
+  if (t.trim() === "all") return "ALL";
+  if (t.includes("task")) return "Task";
+  return "Other";
+};
+const RESP_COLOR = { "WhatsApp / Styllano":"#7fa8b8", "Modex / Porto":"#e0956a", "Task":"#b7b1a0", "ALL":"#d9a12e", "Follow up":"#3d7d75", "Other":"#9aa5a3" };
+const SH_ROWS = [["Morning","#f0b848","morning"],["Mid","#3d7d75","mid"],["Night","#0d3b3b","night"],["Off","#cfc9b9","off"]];
+const rrow = (l,c,v,base) => !base ? "" :
+  `<div class="rrow"><span class="rlab" title="${esc(l)}">${esc(l)}</span><span class="rtrack"><i style="width:${(v/base*100).toFixed(1)}%;background:${c}"></i></span><span class="rval">${Math.round(v/base*100)}% <small>(${v})</small></span></div>`;
+
+function computeReport(from, to){
+  const pp = {}, ov = { counts:{morning:0,mid:0,night:0,off:0}, resp:{}, total:0, worked:0 };
+  for (const r of allRows) {
+    if (from && r.date < from) continue;
+    if (to && r.date > to) continue;
+    for (const e of r.entries) {
+      const [k] = SHIFT(e.shift);
+      if (k === "resigned") continue;
+      const p = pp[e.name] ??= { counts:{morning:0,mid:0,night:0,off:0}, resp:{}, total:0, worked:0 };
+      p.counts[k]++; p.total++; ov.counts[k]++; ov.total++;
+      if (k !== "off") {
+        p.worked++; ov.worked++;
+        const c = RESP_CAT(e.resp);
+        p.resp[c] = (p.resp[c]||0) + 1;
+        ov.resp[c] = (ov.resp[c]||0) + 1;
+      }
+    }
+  }
+  return { pp, ov };
+}
+
+function applyRange(){
+  const f = document.getElementById("rangeFrom").value, t = document.getElementById("rangeTo").value;
+  const from = f ? fromIso(f) : null, to = t ? fromIso(t) : null;
+  const R = computeReport(from, to);
+  curReport = R;
+  curPer = {}; for (const n in R.pp) curPer[n] = R.pp[n].counts;
+  document.getElementById("rangeLabel").textContent = (f || t)
+    ? `${f ? fmtS(fromIso(f)) : "start"} → ${t ? fmtS(fromIso(t)) : "end"}` : "full period";
+  renderOverall(R.ov);
+  renderPeople();
+  if (charts.team) makeTeamChart(true);
+}
+
+function renderOverall(ov){
+  const shiftRows = SH_ROWS.map(([l,c,k]) => rrow(l, c, ov.counts[k], ov.total)).join("");
+  const cats = Object.entries(ov.resp).sort((a,b) => b[1]-a[1]);
+  const respRows = cats.map(([l,c]) => rrow(l, RESP_COLOR[l]||"#9aa5a3", c, ov.worked)).join("") || '<div class="rrow muted">No worked shifts in this range.</div>';
+  document.getElementById("overallBox").innerHTML = `
+    <div><div class="sec" style="margin-top:4px">Team Overall — Shift Mix · % of all scheduled days (${ov.total})</div>${shiftRows}</div>
+    <div><div class="sec" style="margin-top:4px">Team Overall — Assignments · % of worked shifts (${ov.worked})</div>${respRows}</div>`;
+}
+
+function renderPeople(){
+  const R = curReport; if (!R) return;
+  const pp = R.pp, ov = R.ov;
+  const own = repMode === "own";
+  document.getElementById("modeHint").textContent = own
+    ? "Every % is measured against that person's own schedule — their own days and their own worked shifts."
+    : `Every % is that person's SHARE of the whole team in this period — team total: ${ov.worked} worked shifts across ${ov.total} scheduled days.`;
+  const names = Object.keys(pp).sort((a,b) => pp[b].worked - pp[a].worked);
+  const idOf = n => { for (const w of weeks) { const p = w.people.find(x => x.name === n); if (p && p.id) return p.id; } return ""; };
+  document.getElementById("peopleGrid").innerHTML = names.map(n => {
+    const p = pp[n];
+    const status = A.resigned.has(n) ? '<span class="pill p-resigned">Resigned</span>' :
+      (A.latestTeam.includes(n) ? '<span class="pill p-active">Active</span>' : '<span class="pill p-off">Inactive</span>');
+    const id = idOf(n);
+    const shiftBase = k => own ? p.total : (k === "off" ? ov.total : ov.worked);
+    const respBase = own ? p.worked : ov.worked;
+    let shiftRows = own ? "" : rrow("Workload share", "#c58f22", p.worked, ov.worked);
+    shiftRows += SH_ROWS.filter(([,,k]) => p.counts[k] > 0).map(([l,c,k]) => rrow(l, c, p.counts[k], shiftBase(k))).join("");
+    const cats = Object.entries(p.resp).sort((a,b) => b[1]-a[1]);
+    const respRows = cats.length ? cats.map(([l,c]) => rrow(l, RESP_COLOR[l]||"#9aa5a3", c, respBase)).join("")
+      : '<div class="rrow muted">No worked shifts in this range.</div>';
+    const secShift = own ? `Shift mix — % of own days (${p.total})` : `Shift share — % of team total (${ov.worked} shifts)`;
+    const secResp = own ? `Assignments — % of own worked shifts (${p.worked})` : `Assignment share — % of team total (${ov.worked} shifts)`;
+    return `<div class="pcard">
+      <div class="top"><span class="avatar">${initials(n)}</span>
+        <div><div class="nm">${esc(n)}</div><div class="id">${id ? "ID " + id + " · " : ""}${p.worked} shifts · ${p.total} days</div></div>
+        <div style="margin-left:auto">${status}</div></div>
+      <div class="sec">${secShift}</div>${shiftRows}
+      <div class="sec">${secResp}</div>${respRows}
+    </div>`;
+  }).join("");
+}
+
+/* ---------- LOG ---------- */
+function renderLog(){
+  document.getElementById("logCount").textContent = A.adj.length + " entries";
+  document.getElementById("logList").innerHTML = [...A.adj].reverse().map(a =>
+    `<li><div class="d">${a.day} · ${fmtS(a.date)}, ${a.date.getFullYear()}</div><div class="t" dir="auto">${esc(a.note)}</div></li>`).join("");
+}
+
+/* ---------- CHARTS ---------- */
+function makeOverviewCharts(){
+  if (!window.Chart) return;
+  const recent = A.daily.slice(-42);
+  charts.cov = new Chart(document.getElementById("covChart"), {
+    type: "line",
+    data: { labels: recent.map(d => fmtS(d.date)), datasets:[{ data: recent.map(d => d.working),
+      borderColor:"#0d3b3b", backgroundColor:"rgba(240,184,72,.18)", fill:true, tension:.35, pointRadius:0, borderWidth:2.5 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+      scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1, font:{ size:10 }, color:"#6f8280" }, grid:{ color:"#f0ece2" } },
+               x:{ ticks:{ maxTicksLimit:7, font:{ size:10 }, color:"#6f8280" }, grid:{ display:false } } } }
+  });
+  charts.mix = new Chart(document.getElementById("mixChart"), {
+    type: "doughnut",
+    data: { labels:["Morning","Mid","Night"], datasets:[{ data:[A.tot.morning, A.tot.mid, A.tot.night],
+      backgroundColor:["#f0b848","#3d7d75","#0d3b3b"], borderWidth:0 }] },
+    options: { responsive:true, maintainAspectRatio:false, cutout:"66%",
+      plugins:{ legend:{ position:"right", labels:{ boxWidth:10, font:{ size:11 }, color:"#4d6361" } } } }
+  });
+}
+function makeTeamChart(force){
+  if (!window.Chart) return;
+  if (charts.team) { if (!force) return; charts.team.destroy(); }
+  const per = curPer;
+  const names = Object.keys(per).sort((a,b) => totP(per[b]) - totP(per[a]));
+  charts.team = new Chart(document.getElementById("teamChart"), {
+    type: "bar",
+    data: { labels: names, datasets: [
+      { label:"Morning", data:names.map(n => per[n].morning), backgroundColor:"#f0b848", borderRadius:4 },
+      { label:"Mid", data:names.map(n => per[n].mid), backgroundColor:"#3d7d75", borderRadius:4 },
+      { label:"Night", data:names.map(n => per[n].night), backgroundColor:"#0d3b3b", borderRadius:4 },
+      { label:"Off", data:names.map(n => per[n].off), backgroundColor:"#e8e4d8", borderRadius:4 }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:"top", labels:{ boxWidth:10, font:{ size:11 }, color:"#4d6361" } } },
+      scales:{ x:{ stacked:true, grid:{ display:false }, ticks:{ color:"#4d6361" } },
+               y:{ stacked:true, grid:{ color:"#f0ece2" }, ticks:{ font:{ size:10 }, color:"#6f8280" } } } }
+  });
+}
+
+/* ---------- VIEWS ---------- */
+function setView(v){
+  document.querySelectorAll("#tabs button").forEach(t => t.classList.toggle("on", t.dataset.v === v));
+  for (const id of ["overview","schedule","reports","analytics","log","cards"]) document.getElementById("v-"+id).style.display = id === v ? "" : "none";
+  if (v === "analytics") makeTeamChart();
+  if (v === "cards") drawCard();
+  if (v === "reports") loadReports();
+}
+
+/* ---------- MEMBER CARD (Vendoor canvas) ---------- */
+function fillCardMembers(){
+  const cw = document.getElementById("cardWeek"), cm = document.getElementById("cardMember");
+  const prev = cm.value;
+  const ppl = weeks[+cw.value].people.map(p => p.name);
+  cm.innerHTML = ppl.map(n => `<option>${esc(n)}</option>`).join("");
+  if (ppl.includes(prev)) cm.value = prev;
+}
+function drawCard(){
+  const w = weeks[+document.getElementById("cardWeek").value];
+  const nameSel = document.getElementById("cardMember").value;
+  if (!w || !nameSel) return;
+  const p = w.people.find(pp => pp.name === nameSel);
+  const rows = w.rows;
+  const cv = document.getElementById("cardCanvas");
+  const W=1240, PAD=28, TOP=112, HEADR=86, ROWH=96;
+  const COLSW=[170,130,300,360,224], TWD=COLSW.reduce((a,b)=>a+b,0);
+  const TH=HEADR+rows.length*ROWH, H=TOP+TH+PAD;
+  const s=2; cv.width=W*s; cv.height=H*s;
+  const x=cv.getContext("2d"); x.setTransform(s,0,0,s,0,0);
+  const FF="-apple-system,'Segoe UI',Arial,sans-serif";
+  const TEALC="#0d3b3b", TLINE="#20504e", GOLDC="#f0b848",
+        CR1="#faf8f3", CR2="#f0ede5", REDC="#a31414",
+        LBL="#c9dce4", PCH="#f6c6a8", GRY="#dbe3e6",
+        DRK="#173030", MID2="#3d7d75", SEPC="#e2ded4";
+  x.textBaseline="middle";
+  const text=(t,tx,ty,fnt,c)=>{x.font=fnt;x.fillStyle=c;x.fillText(t,tx,ty);};
+  const tw=(t,fnt)=>{x.font=fnt;return x.measureText(t).width;};
+  const chev=(cx,cy,c)=>{x.strokeStyle=c;x.lineWidth=3;x.lineJoin="round";x.beginPath();x.moveTo(cx-7,cy-3);x.lineTo(cx,cy+4);x.lineTo(cx+7,cy-3);x.stroke();};
+  const pillD=(x0,y0,x1,y1,bg,fg,t,fnt)=>{
+    x.fillStyle=bg;x.beginPath();x.roundRect(x0,y0,x1-x0,y1-y0,(y1-y0)/2);x.fill();
+    const maxw=(x1-x0)-52; x.font=fnt;
+    let tt=t; if(x.measureText(tt).width>maxw){while(tt&&x.measureText(tt+"…").width>maxw)tt=tt.slice(0,-1);tt+="…";}
+    const wdt=x.measureText(tt).width;
+    x.fillStyle=fg;x.fillText(tt,x0+((x1-x0)-52-wdt)/2+12,(y0+y1)/2+1);
+    chev(x1-24,(y0+y1)/2,fg);
+  };
+  const sunI=(cx,cy)=>{x.strokeStyle=GOLDC;x.lineWidth=3;x.beginPath();x.arc(cx,cy,8,0,7);x.stroke();for(let a=0;a<8;a++){const th=a*Math.PI/4;x.beginPath();x.moveTo(cx+12*Math.cos(th),cy+12*Math.sin(th));x.lineTo(cx+17*Math.cos(th),cy+17*Math.sin(th));x.stroke();}};
+  const moonI=(cx,cy,bg)=>{x.fillStyle=GOLDC;x.beginPath();x.arc(cx,cy,11,0,7);x.fill();x.fillStyle=bg;x.beginPath();x.arc(cx+7,cy-4,11,0,7);x.fill();};
+  const calI=(cx,cy)=>{x.strokeStyle=GOLDC;x.lineWidth=3;x.beginPath();x.roundRect(cx-11,cy-9,22,20,4);x.stroke();x.beginPath();x.moveTo(cx-5,cy-14);x.lineTo(cx-5,cy-6);x.moveTo(cx+5,cy-14);x.lineTo(cx+5,cy-6);x.stroke();};
+  const chatI=(cx,cy)=>{x.strokeStyle=GOLDC;x.lineWidth=3;x.beginPath();x.arc(cx,cy-1,10,0,7);x.stroke();x.fillStyle=GOLDC;x.beginPath();x.moveTo(cx-4,cy+7);x.lineTo(cx-1,cy+14);x.lineTo(cx+4,cy+6);x.fill();};
+  const perI=(cx,cy)=>{x.strokeStyle=GOLDC;x.lineWidth=3;x.beginPath();x.arc(cx,cy-7,5,0,7);x.stroke();x.beginPath();x.arc(cx,cy+9,10,Math.PI*1.15,Math.PI*1.85);x.stroke();};
+  const clkI=(cx,cy)=>{x.strokeStyle=GOLDC;x.lineWidth=3;x.beginPath();x.arc(cx,cy,10,0,7);x.stroke();x.beginPath();x.moveTo(cx,cy);x.lineTo(cx,cy-6);x.moveTo(cx,cy);x.lineTo(cx+5,cy+2);x.stroke();};
+  x.fillStyle=TEALC;x.fillRect(0,0,W,H);
+  text("vendoor",PAD,58,"800 38px "+FF,"#ffffff");
+  const wl="Weekly Schedule  ·  "+fmtS(rows[0].date)+" – "+fmtS(rows.at(-1).date)+", "+rows[0].date.getFullYear();
+  text(wl,W-PAD-tw(wl,"400 15px "+FF),60,"400 15px "+FF,GOLDC);
+  x.save();x.beginPath();x.roundRect(PAD,TOP,TWD,TH,22);x.clip();
+  x.fillStyle=CR1;x.fillRect(PAD,TOP,TWD,TH);
+  x.fillStyle=TEALC;x.fillRect(PAD,TOP,TWD,HEADR);
+  const hx=[PAD]; COLSW.forEach((c,i)=>hx.push(hx[i]+c));
+  const hy=TOP+HEADR/2, HF="700 20px "+FF;
+  calI(hx[0]+24,hy); text("Day",hx[0]+46,hy,HF,"#ffffff");
+  calI(hx[1]+24,hy); text("Date",hx[1]+46,hy,HF,"#ffffff");
+  chatI(hx[2]+24,hy); text(nameSel,hx[2]+46,hy,"700 18px "+FF,"#ffffff");
+  if(p&&p.id) text("("+p.id+")",hx[2]+46+tw(nameSel,"700 18px "+FF)+8,hy+2,"400 13px "+FF,"#becdcd");
+  perI(hx[3]+24,hy); text("Responsible Of...",hx[3]+46,hy,HF,"#ffffff"); chev(hx[4]-22,hy,"#ffffff");
+  clkI(hx[4]+24,hy); text("Time...",hx[4]+46,hy,HF,"#ffffff"); chev(hx[5]-22,hy,"#ffffff");
+  x.strokeStyle=TLINE;x.lineWidth=1;
+  for(let i=1;i<5;i++){x.beginPath();x.moveTo(hx[i],TOP+10);x.lineTo(hx[i],TOP+HEADR-10);x.stroke();}
+  let y=TOP+HEADR;
+  rows.forEach((r,ri)=>{
+    const e=r.entries.find(en=>en.name===nameSel);
+    const lbl=e?SHIFT(e.shift)[1]:"Off";
+    const k=(lbl==="Resigned")?"Off":lbl;
+    x.fillStyle=(ri%2? CR2:CR1);x.fillRect(hx[1],y,TWD-COLSW[0],ROWH);
+    x.fillStyle=TEALC;x.fillRect(PAD,y,COLSW[0],ROWH);
+    if(ri){x.strokeStyle=TLINE;x.lineWidth=1;x.beginPath();x.moveTo(PAD+14,y);x.lineTo(hx[1]-6,y);x.stroke();
+      x.strokeStyle=SEPC;x.beginPath();x.moveTo(hx[1],y);x.lineTo(PAD+TWD,y);x.stroke();}
+    const cy=y+ROWH/2;
+    if(k==="Night")moonI(PAD+28,cy,TEALC);else sunI(PAD+28,cy);
+    text(r.day,PAD+52,cy,"700 16px "+FF,"#ffffff");
+    const ds=r.date.getDate()+"/"+(r.date.getMonth()+1)+"/"+r.date.getFullYear();
+    text(ds,hx[1]+(COLSW[1]-tw(ds,"400 17px "+FF))/2,cy,"400 17px "+FF,DRK);
+    x.strokeStyle=SEPC;x.lineWidth=1;
+    for(let i=2;i<5;i++){x.beginPath();x.moveTo(hx[i],y+8);x.lineTo(hx[i],y+ROWH-8);x.stroke();}
+    const SC={Morning:[GOLDC,DRK],Night:[TEALC,"#ffffff"],Mid:[MID2,"#ffffff"],Off:[REDC,"#ffffff"]};
+    pillD(hx[2]+24,cy-23,hx[3]-24,cy+23,SC[k][0],SC[k][1],k,"700 18px "+FF);
+    const off=(k==="Off");
+    let rt=off?"Off":(e.resp||"").replace(/\s+/g," ").trim().replace(/^-\s*/,"");
+    const rl=rt.toLowerCase();
+    const rc=off?[REDC,"#ffffff"]:(rl.includes("whatsapp")?[LBL,DRK]:(rl.includes("porto")||rl.includes("beblark"))?[PCH,DRK]:(rl==="task"||rl==="all")?[GRY,DRK]:[LBL,DRK]);
+    pillD(hx[3]+18,cy-23,hx[4]-18,cy+23,rc[0],rc[1],rt,(off?"700 15px ":"400 15px ")+FF);
+    const tt=off?"Off":(e.time||"").replace(/\s+/g," ").trim();
+    pillD(hx[4]+14,cy-23,hx[5]-14,cy+23,off?REDC:GRY,off?"#ffffff":DRK,tt,(off?"700 14px ":"400 14px ")+FF);
+    y+=ROWH;
+  });
+  x.restore();
+}
+
+/* ---------- WEEK PNG (Vendoor canvas) ---------- */
+function drawWeekPNG(){
+  const w = weeks[weekIdx];
+  if (!w) return;
+  const rows=w.rows, ppl=w.people;
+  const FF="-apple-system,'Segoe UI',Arial,sans-serif";
+  const TEALC="#0d3b3b", TLINE="#20504e", GOLDC="#f0b848", CR1="#faf8f3", CR2="#f0ede5",
+        REDC="#a31414", DRK="#173030", MID2="#3d7d75", SEPC="#e2ded4", MUT="#6b7f7f";
+  const PAD=28, TOP=112, HEADR=74, ROWH=112, DAYW=170;
+  const CW = Math.max(150, Math.min(190, Math.floor(1400/ppl.length)));
+  const TWD = DAYW + CW*ppl.length;
+  const W = TWD + PAD*2, TH = HEADR + rows.length*ROWH, H = TOP + TH + PAD;
+  const cv = document.createElement("canvas");
+  const s=2; cv.width=W*s; cv.height=H*s;
+  const x=cv.getContext("2d"); x.setTransform(s,0,0,s,0,0);
+  x.textBaseline="middle";
+  const text=(t,tx,ty,fnt,c)=>{x.font=fnt;x.fillStyle=c;x.fillText(t,tx,ty);};
+  const tw=(t,fnt)=>{x.font=fnt;return x.measureText(t).width;};
+  const fit=(t,fnt,maxw)=>{x.font=fnt;let tt=t;if(x.measureText(tt).width>maxw){while(tt&&x.measureText(tt+"…").width>maxw)tt=tt.slice(0,-1);tt+="…";}return tt;};
+  x.fillStyle=TEALC;x.fillRect(0,0,W,H);
+  text("vendoor",PAD,58,"800 38px "+FF,"#ffffff");
+  const wl="Team Weekly Schedule  ·  "+fmtS(rows[0].date)+" – "+fmtS(rows.at(-1).date)+", "+rows[0].date.getFullYear();
+  text(wl,W-PAD-tw(wl,"400 15px "+FF),60,"400 15px "+FF,GOLDC);
+  x.save();x.beginPath();x.roundRect(PAD,TOP,TWD,TH,22);x.clip();
+  x.fillStyle=CR1;x.fillRect(PAD,TOP,TWD,TH);
+  x.fillStyle=TEALC;x.fillRect(PAD,TOP,TWD,HEADR);
+  const hy=TOP+HEADR/2;
+  text("Day / Date",PAD+20,hy,"700 17px "+FF,"#ffffff");
+  ppl.forEach((p,i)=>{
+    const cx=PAD+DAYW+i*CW;
+    const nf="700 15px "+FF;
+    const nm=fit(p.name,nf,CW-20);
+    text(nm,cx+(CW-tw(nm,nf))/2,hy-(p.id?8:0),nf,"#ffffff");
+    if(p.id){const idt="("+p.id+")";text(idt,cx+(CW-tw(idt,"400 11px "+FF))/2,hy+11,"400 11px "+FF,"#becdcd");}
+    x.strokeStyle=TLINE;x.lineWidth=1;x.beginPath();x.moveTo(cx,TOP+10);x.lineTo(cx,TOP+HEADR-10);x.stroke();
+  });
+  let y=TOP+HEADR;
+  const SC={Morning:[GOLDC,DRK],Night:[TEALC,"#ffffff"],Mid:[MID2,"#ffffff"],Off:[REDC,"#ffffff"]};
+  rows.forEach((r,ri)=>{
+    x.fillStyle=(ri%2?CR2:CR1);x.fillRect(PAD+DAYW,y,TWD-DAYW,ROWH);
+    x.fillStyle=TEALC;x.fillRect(PAD,y,DAYW,ROWH);
+    if(ri){x.strokeStyle=TLINE;x.lineWidth=1;x.beginPath();x.moveTo(PAD+14,y);x.lineTo(PAD+DAYW-6,y);x.stroke();
+      x.strokeStyle=SEPC;x.beginPath();x.moveTo(PAD+DAYW,y);x.lineTo(PAD+TWD,y);x.stroke();}
+    const cyD=y+ROWH/2;
+    text(r.day,PAD+20,cyD-11,"700 17px "+FF,"#ffffff");
+    const ds=r.date.getDate()+"/"+(r.date.getMonth()+1)+"/"+r.date.getFullYear();
+    text(ds,PAD+20,cyD+14,"400 13px "+FF,GOLDC);
+    ppl.forEach((p,i)=>{
+      const cx=PAD+DAYW+i*CW;
+      x.strokeStyle=SEPC;x.lineWidth=1;x.beginPath();x.moveTo(cx,y+8);x.lineTo(cx,y+ROWH-8);x.stroke();
+      const e=r.entries.find(en=>en.name===p.name);
+      const lbl=e?SHIFT(e.shift)[1]:"Off";
+      const k=(lbl==="Resigned")?"Off":lbl;
+      const off=(k==="Off");
+      const pw=Math.min(CW-28,110);
+      const px=cx+(CW-pw)/2, py=off? y+ROWH/2-15 : y+18;
+      x.fillStyle=SC[k][0];x.beginPath();x.roundRect(px,py,pw,30,15);x.fill();
+      x.font="700 14px "+FF;x.fillStyle=SC[k][1];
+      x.fillText(k,cx+(CW-tw(k,"700 14px "+FF))/2,py+16);
+      if(!off){
+        let rt=(e.resp||"").replace(/\s+/g," ").trim().replace(/^-\s*/,"");
+        rt=fit(rt,"400 11px "+FF,CW-16);
+        text(rt,cx+(CW-tw(rt,"400 11px "+FF))/2,y+64,"400 11px "+FF,"#3f5656");
+        const tm=fit((e.time||"").trim(),"400 11px "+FF,CW-16);
+        text(tm,cx+(CW-tw(tm,"400 11px "+FF))/2,y+86,"400 11px "+FF,MUT);
+      }
+    });
+    y+=ROWH;
+  });
+  x.restore();
+  const fn="Vendoor_Week_"+fmtS(rows[0].date).replace(/\s/g,"")+"-"+fmtS(rows.at(-1).date).replace(/\s/g,"")+".png";
+  cv.toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=fn;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);});
+}
+
+/* ---------- DAILY REPORTS ---------- */
+const REPORTS = [
+  ["Roaa","1cZ-E8BFETK_Zql2liZqqQq_PsKlSDqL_GgsR6-PZjBA"],
+  ["Suhaila Magdy","13UeC1McFyIyclF2-z-ub-s6mwKDjC29L5kBx7CCM84M"],
+  ["Basant","1G85Ha_3XPkmr-QC56MIMsU0NKUh9Ocmv10F4NzkI_x0"],
+  ["Sohaila M.","1jSUKcG4zW3LRBBqk4llvQFlzn_MHSLt5reKCaCGcXLY"],
+  ["Snapel","1OXsrZnF6ZBWJX9HiLEIjcqp2ZIpolg5BN_1MHj2nQZA"],
+  ["Mai","1a0zr_hhLMKVFyl8tTZ4c7iGkgnCpCaRAT0ZxsLs3Mrc"],
+  ["Heba","1ASE67uDfokB-xDSBAPpeIA770fuvDObhEu-9NiA6n_4"]
+];
+let reportRows = null, rawReports = null, reportsLoading = false, repShowAll = false, repSource = "";
+const fmtN = n => n == null ? "—" : Math.round(n).toLocaleString("en-US");
+
+// Parse a single week sheet's 2D values array (from Sheets API) into a week object.
+function parseFromGrid(values){
+  if (!values || values.length < 2) return null;
+  const header = values[0].map(c => String(c||"").trim());
+  if (header[0] !== "Day" || header[1] !== "Date") return null;
+  const people = [];
+  for (let i = 2; i < header.length; i += 3) {
+    const n = header[i];
+    if (!n || /^Approved/i.test(n)) break;
+    let name = n.replace(/\s*\(.*?\)\s*/g," ").trim();
+    name = ALIAS[name] || name;
+    const idm = n.match(/\((\d+)\)/);
+    people.push({ name, id: idm ? idm[1] : "", col: i });
+  }
+  if (!people.length) return null;
+  const aIdx = 2 + people.length * 3;
+  const rows = [];
+  for (let ri = 1; ri < values.length; ri++) {
+    const r = values[ri];
+    if (!r || !r[1]) continue;
+    const dateStr = String(r[1]||"").trim();
+    const dm = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!dm) continue;
+    const a = +dm[1], b = +dm[2], y = +dm[3];
+    // D/M/YYYY: if a>12 it must be the day; otherwise treat first as day (local convention)
+    const date = a > 12 ? new Date(y, b-1, a) : new Date(y, a-1, b);
+    if (isNaN(date.getTime())) continue;
+    rows.push({
+      day: String(r[0]||"").trim(),
+      date,
+      _sheetRow: ri + 1,   // 1-based row in Google Sheets (header = row 1)
+      _aIdx: aIdx,          // 0-based column index of Approved
+      entries: people.map(p => ({
+        name: p.name,
+        shift: String(r[p.col]||"").trim(),
+        resp:  String(r[p.col+1]||"").trim(),
+        time:  String(r[p.col+2]||"").trim(),
+        _shiftCol: p.col + 1,   // 1-based sheet column
+        _respCol:  p.col + 2,
+        _timeCol:  p.col + 3
+      })),
+      approved: String(r[aIdx]||"").trim(),
+      note:     String(r[aIdx+1]||"").trim()
+    });
+  }
+  return rows.length ? { people, aIdx, rows } : null;
+}
+
+// Parse ReportsHub 2D values array into the same shape parseReport() returns.
+function parseHubFromGrid(values){
+  if (!values || values.length < 2) return [];
+  const hdr = values[0].map(c => String(c||"").trim().toLowerCase());
+  const ci = {};
+  hdr.forEach((c,i) => {
+    if (c === "member")                         ci.member    = i;
+    else if (c.startsWith("today"))             ci.date      = i;
+    else if (c === "shift")                     ci.shift     = i;
+    else if (c === "total sales")               ci.sales     = i;
+    else if (c.startsWith("total orders"))      ci.orders    = i;
+    else if (c.startsWith("total quantity"))    ci.qty       = i;
+    else if (c === "aov")                       ci.aov       = i;
+    else if (c.startsWith("ratio"))             ci.ratio     = i;
+    else if (c.startsWith("total sales change"))ci.dSales    = i;
+    else if (c.startsWith("out of stock"))      ci.oos       = i;
+    else if (c.startsWith("refund"))            ci.refunds   = i;
+    else if (c.startsWith("exchanged"))         ci.exchanges = i;
+    else if (c === "first")                     ci.first     = i;
+    else if (c === "last")                      ci.last      = i;
+    else if (c === "feedback")                  ci.fb        = i;
+  });
+  if (!ci.date) return [];
+  const num = v => { v=String(v||"").replace(/[,%]/g,""); if(/ref|off|^\s*-\s*$/i.test(v)) return null; const n=parseFloat(v); return isNaN(n)?null:n; };
+  const g = (r,k) => ci[k]==null ? "" : String(r[ci[k]]||"");
+  const out = [];
+  for (let ri = 1; ri < values.length; ri++) {
+    const r = values[ri];
+    if (!r || !r[ci.date]) continue;
+    const date = parseRDate(g(r,"date"));
+    if (!date) continue;
+    const row = {
+      member: g(r,"member"), date, shift: g(r,"shift"),
+      sales: num(g(r,"sales")), orders: num(g(r,"orders")), qty: num(g(r,"qty")),
+      aov: num(g(r,"aov")), ratio: num(g(r,"ratio")), dSales: num(g(r,"dSales")),
+      oos: num(g(r,"oos")), refunds: num(g(r,"refunds")), exchanges: num(g(r,"exchanges")),
+      first: g(r,"first").replace(/^\?$/,""), last: g(r,"last").replace(/^\?$/,""), fb: g(r,"fb")
+    };
+    if ((row.sales!=null&&row.sales>0)||row.fb||(row.shift&&!/^off/i.test(row.shift)&&row.orders!=null)) out.push(row);
+  }
+  return out;
+}
+
+function parseRDate(s){
+  s = (s||"").trim();
+  let m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) { const a = +m[1], b = +m[2], y = +m[3]; return a > 12 ? new Date(y,b-1,a) : new Date(y,a-1,b); }
+  return null;
+}
+
+function parseReport(md, member){
+  const out = [];
+  let cols = null;
+  for (const line of md.split("\n")) {
+    if (!line.trim().startsWith("|")) continue;
+    const cells = line.split("|").slice(1,-1).map(c => c.trim().replace(/\\([#!\-_.])/g, "$1"));
+    const low = cells.map(c => c.toLowerCase());
+    if (low.some(c => c.startsWith("total sales")) && low.some(c => c.startsWith("shift"))) {
+      cols = {};
+      low.forEach((c,i) => {
+        if (c.startsWith("today")) cols.date = i;
+        else if (c.startsWith("shift")) cols.shift = i;
+        else if (c === "total sales") cols.sales = i;
+        else if (c.startsWith("total orders")) cols.orders = i;
+        else if (c.startsWith("total quantity")) cols.qty = i;
+        else if (c === "aov") cols.aov = i;
+        else if (c.startsWith("ratio")) cols.ratio = i;
+        else if (c.startsWith("total sales change")) cols.dSales = i;
+        else if (c.startsWith("out of stock")) cols.oos = i;
+        else if (c.startsWith("refund")) cols.refunds = i;
+        else if (c.startsWith("exchanged")) cols.exchanges = i;
+        else if (c === "feedback") cols.fb = i;
+        else if (c.startsWith("days off")) cols.daysOff = i;
+        else if (c === "first") cols.first = i;
+        else if (c === "last") cols.last = i;
+        else if (c === "member") cols.member = i;
+      });
+      continue;
+    }
+    if (!cols) continue;
+    const date = parseRDate(cells[cols.date]);
+    if (!date) continue;
+    const g = i => i == null ? "" : (cells[i] || "");
+    const num = v => { v = String(v).replace(/[,%\\]/g,""); if (/ref|off|^\s*-\s*$/i.test(v)) return null; const n = parseFloat(v); return isNaN(n) ? null : n; };
+    const shift = g(cols.shift);
+    const row = {
+      member: g(cols.member) || member, date, shift,
+      sales: num(g(cols.sales)), orders: num(g(cols.orders)), qty: num(g(cols.qty)),
+      aov: num(g(cols.aov)), ratio: num(g(cols.ratio)), dSales: num(g(cols.dSales)),
+      oos: num(g(cols.oos)), refunds: num(g(cols.refunds)), exchanges: num(g(cols.exchanges)),
+      fb: g(cols.fb), first: g(cols.first).replace(/^\?$/,""), last: g(cols.last).replace(/^\?$/,"")
+    };
+    if ((row.sales != null && row.sales > 0) || row.fb || (shift && !/^off/i.test(shift) && row.orders != null)) out.push(row);
+  }
+  return out;
+}
+
+async function loadReports(force){
+  if ((reportRows && !force) || reportsLoading) return;
+  reportsLoading = true;
+  document.getElementById("repLoading").style.display = "";
+  document.getElementById("repErr").innerHTML = "";
+  try {
+    rawReports = {};
+    const emb = document.getElementById("reports-data");
+
+    if (emb) {
+      // ── 1. Embedded snapshot ──────────────────────────────────────────────
+      repSource = "embedded";
+      rawReports = JSON.parse(emb.textContent);
+      reportRows = [];
+      for (const nm in rawReports) reportRows.push(...parseReport(rawReports[nm], nm));
+
+    } else if (typeof google !== "undefined" && google.script && google.script.run) {
+      // ── 2. Hosted Apps Script page (google.script.run — no size limit) ────
+      repSource = "apps";
+      const res = await new Promise((ok,bad) => google.script.run
+        .withSuccessHandler(ok)
+        .withFailureHandler(e => bad(new Error(e && e.message || "Apps Script error")))
+        .getReports());
+      for (const nm in res)
+        rawReports[nm] = res[nm].map(r =>
+          "| " + r.map(c => String(c==null?"":c).replace(/\|/g,"/").replace(/\n/g," · ")).join(" | ") + " |"
+        ).join("\n");
+      reportRows = [];
+      for (const nm in rawReports) reportRows.push(...parseReport(rawReports[nm], nm));
+
+    } else if (APPS_SCRIPT_URL && !window.cowork) {
+      // ── 3. Standalone HTML mode → fetch JSON hub from Apps Script ──────────
+      repSource = "hub-fetch";
+      const resp = await fetch(APPS_SCRIPT_URL + "?action=hub", { redirect: "follow" });
+      if (!resp.ok) throw new Error("Hub fetch failed: " + resp.status);
+      const data = await resp.json();
+      reportRows = data
+        .map(r => ({
+          member: r.member, date: parseRDate(r.date), shift: r.shift,
+          sales: r.sales||null, orders: r.orders||null, qty: r.qty||null,
+          aov: r.aov||null, ratio: r.ratio||null, dSales: r.dSales??null,
+          oos: r.oos||null, refunds: r.refunds||null, exchanges: r.exchanges||null,
+          first: r.first||"", last: r.last||"", fb: r.fb||""
+        }))
+        .filter(r => r.date);
+
+    } else if (window.cowork) {
+      // ── 4. Cowork connector (may be partial — large sheets get truncated) ─
+      repSource = "cowork";
+      // Try to read each member sheet; truncation is expected for large files.
+      await Promise.all(REPORTS.map(async ([nm,id]) => {
+        try {
+          const r = await window.cowork.callMcpTool(TOOL, { fileId: id });
+          if (r.isError) return;
+          let md = r.structuredContent?.fileContent;
+          if (!md) { const t = r.content?.[0]?.text||""; try { md = JSON.parse(t).fileContent; } catch { md = t; } }
+          if (md) rawReports[nm] = md;
+        } catch(e) {}
+      }));
+      reportRows = [];
+      for (const nm in rawReports) reportRows.push(...parseReport(rawReports[nm], nm));
+
+      // Merge ReportsHub tab via Sheets API (reliable — not limited by connector size).
+      let hubFound = false;
+      try {
+        // First try rawMd (Drive connector path — works if sheet is small enough)
+        if (rawMd) {
+          const hub = parseReport(rawMd, "").filter(r => r.member);
+          if (hub.length) {
+            hubFound = true;
+            const seen = new Map(reportRows.map((r,i) => [r.member+"|"+iso(r.date), i]));
+            for (const hrow of hub) {
+              const k = hrow.member+"|"+iso(hrow.date);
+              if (seen.has(k)) reportRows[seen.get(k)] = hrow; else reportRows.push(hrow);
+            }
+          }
+        }
+        // Fallback: read ReportsHub directly via Sheets API
+        if (!hubFound && window.cowork) {
+          const hr = await window.cowork.callMcpTool(SHEETS_TOOL, {
+            spreadsheetId: FILE_ID, range: "ReportsHub!A:O"
+          });
+          const hdata = hr.structuredContent || JSON.parse(hr.content?.[0]?.text||"{}");
+          const hub = parseHubFromGrid(hdata.values);
+          if (hub.length) {
+            hubFound = true;
+            const seen = new Map(reportRows.map((r,i) => [r.member+"|"+iso(r.date), i]));
+            for (const hrow of hub) {
+              const k = hrow.member+"|"+iso(hrow.date);
+              if (seen.has(k)) reportRows[seen.get(k)] = hrow; else reportRows.push(hrow);
+            }
+          }
+        }
+      } catch(e) { /* hub merge optional */ }
+      window.__hubFound = hubFound;
+    } else {
+      throw new Error('لا يوجد مصدر بيانات. افتح الداشبورد الحي أو أضف APPS_SCRIPT_URL في الكود.');
+    }
+
+    reportRows.sort((a,b) => a.date - b.date);
+
+    if (!reportRows.length) {
+      // Show setup instructions instead of a raw error
+      document.getElementById("repErr").innerHTML = `
+        <div class="note" style="font-size:13.5px;line-height:1.75">
+          <b>⚠️ لا توجد بيانات ريبورتات بعد — خطوة واحدة مطلوبة:</b><br><br>
+          <b>1.</b> افتح شيت الـ Schedule → <b>Extensions → Apps Script</b><br>
+          <b>2.</b> في ملف <code>Code.gs</code> الصق الكود الجديد (من ملف Code.gs المحدّث في Cowork)<br>
+          <b>3.</b> من القائمة المنسدلة اختار الدالة <b>syncReportsHub</b> ← اضغط ▶ Run<br>
+          <b>4.</b> وافق على الصلاحيات لو طلب، ثم أعد تحميل الداشبورد<br><br>
+          <small>بعد ذلك هتشوف آخر 30 يوم لكل أفراد الفريق. للتاريخ الكامل: أضف لينك الـ Web App في <code>APPS_SCRIPT_URL</code> فوق في الكود.</small>
+        </div>`;
+      document.getElementById("repLoading").style.display = "none";
+      reportsLoading = false;
+      return;
+    }
+
+    setupReportsUI();
+    renderReports();
+    document.getElementById("repBody").style.display = "";
+
+    // Show appropriate status banner
+    if (repSource === "hub-fetch") {
+      document.getElementById("repErr").innerHTML =
+        '<div class="note">✅ بيانات الريبورتات محدّثة مباشرة من Apps Script — آخر 62 يوم لكل الفريق.</div>';
+    } else if (repSource === "cowork") {
+      document.getElementById("repErr").innerHTML = window.__hubFound
+        ? '<div class="note">✅ ReportsHub شغّال — بيعرض آخر 30 يوم لكل الفريق. للتاريخ الكامل: الصق لينك الـ Web App في <code>APPS_SCRIPT_URL</code>.</div>'
+        : `<div class="note">⚠️ البيانات الظاهرة جزئية (الـ connector بيقرأ جزء من كل شيت بس).
+            <b>الحل الدائم:</b> افتح Apps Script → اختار الدالة <b>syncReportsHub</b> → اضغط ▶ Run مرة واحدة →
+            أضف Trigger ساعي → أعد تحميل الداشبورد.</div>`;
+    }
+
+  } catch(e) {
+    document.getElementById("repErr").innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  }
+  document.getElementById("repLoading").style.display = "none";
+  reportsLoading = false;
+}
+
+function setupReportsUI(){
+  const ms = document.getElementById("repMember");
+  const names = [...new Set(reportRows.map(r => r.member))];
+  ms.innerHTML = '<option value="">All members</option>' + names.map(n => `<option>${esc(n)}</option>`).join("");
+  const ps = document.getElementById("repPeriod");
+  const mk = [];
+  reportRows.forEach(r => { const k = r.date.getFullYear() + "-" + r.date.getMonth(); if (!mk.some(x => x.k === k)) mk.push({ k, d: r.date }); });
+  ps.innerHTML = '<option value="all">All period</option><option value="custom" hidden>Custom</option>' +
+    mk.map(x => `<option value="m:${x.k}">${x.d.toLocaleDateString("en-US",{ month:"long", year:"numeric" })}</option>`).join("");
+  const rf = document.getElementById("repFrom"), rt = document.getElementById("repTo");
+  rf.min = rt.min = iso(reportRows[0].date);
+  rf.max = rt.max = iso(reportRows.at(-1).date);
+  ms.onchange = renderReports;
+  ps.onchange = () => {
+    if (ps.value === "all") { rf.value = ""; rt.value = ""; }
+    else if (ps.value.startsWith("m:")) { const [y,m] = ps.value.slice(2).split("-").map(Number); rf.value = iso(new Date(y,m,1)); rt.value = iso(new Date(y,m+1,0)); }
+    renderReports();
+  };
+  rf.onchange = rt.onchange = () => { ps.value = "custom"; renderReports(); };
+}
+
+function renderReports(){
+  const mem = document.getElementById("repMember").value;
+  const f = document.getElementById("repFrom").value, t = document.getElementById("repTo").value;
+  const from = f ? fromIso(f) : null, to = t ? fromIso(t) : null;
+  const rows = reportRows.filter(r => (!mem || r.member === mem) && (!from || r.date >= from) && (!to || r.date <= to));
+  const S = k => rows.reduce((s,r) => s + (r[k] || 0), 0);
+  const sales = S("sales"), orders = S("orders"), qty = S("qty");
+  const days = rows.filter(r => r.sales != null && r.sales > 0).length;
+  document.getElementById("repKpis").innerHTML = [
+    [fmtN(sales), "Total Sales", "EGP · " + days + " reported days"],
+    [fmtN(orders), "Orders", "avg " + (days ? fmtN(orders/days) : "—") + " / day"],
+    [fmtN(qty), "Items Sold", orders ? (qty/orders).toFixed(2) + " items / order" : ""],
+    [orders ? fmtN(sales/orders) : "—", "AOV", "EGP per order"],
+    [fmtN(S("oos")), "Out of Stock", "flagged occurrences"],
+    [fmtN(S("refunds")), "Refunds", fmtN(S("exchanges")) + " exchanges"]
+  ].map(([v,l,s]) => `<div class="kpi"><div class="v" style="font-size:24px">${v}</div><div class="l">${l}</div><div class="s">${s}</div></div>`).join("");
+  const byDate = {};
+  rows.forEach(r => { const k = iso(r.date); byDate[k] = (byDate[k] || 0) + (r.sales || 0); });
+  const dk = Object.keys(byDate).sort();
+  if (charts.sales) charts.sales.destroy();
+  if (window.Chart) charts.sales = new Chart(document.getElementById("salesChart"), {
+    type:"line",
+    data:{ labels: dk.map(k => fmtS(fromIso(k))), datasets:[{ data: dk.map(k => byDate[k]), borderColor:"#0d3b3b", backgroundColor:"rgba(240,184,72,.18)", fill:true, tension:.3, pointRadius:0, borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+      scales:{ y:{ ticks:{ font:{ size:10 }, color:"#6f8280", callback:v => v >= 1000 ? (v/1000) + "k" : v }, grid:{ color:"#f0ece2" } },
+               x:{ ticks:{ maxTicksLimit:8, font:{ size:10 }, color:"#6f8280" }, grid:{ display:false } } } }
+  });
+  document.getElementById("trendSub").textContent = "daily total sales (EGP)" + (mem ? " — " + mem : "");
+  const byMem = {};
+  rows.forEach(r => { byMem[r.member] = (byMem[r.member] || 0) + (r.sales || 0); });
+  const mnames = Object.keys(byMem).sort((a,b) => byMem[b] - byMem[a]);
+  if (charts.mem) charts.mem.destroy();
+  if (window.Chart) charts.mem = new Chart(document.getElementById("memChart"), {
+    type:"bar",
+    data:{ labels: mnames, datasets:[{ data: mnames.map(n => byMem[n]), backgroundColor:"#f0b848", borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+      scales:{ y:{ ticks:{ font:{ size:10 }, color:"#6f8280", callback:v => v >= 1000 ? (v/1000) + "k" : v }, grid:{ color:"#f0ece2" } },
+               x:{ ticks:{ color:"#4d6361", font:{ size:11 } }, grid:{ display:false } } } }
+  });
+  const revAll = [...rows].reverse();
+  const rev = repShowAll ? revAll : revAll.slice(0, 40);
+  let h = `<table><thead><tr><th>Date</th><th>Member</th><th>Shift</th><th>Sales</th><th>Orders</th><th>Items</th><th>AOV</th><th>Ratio</th><th>Δ Sales</th><th>OOS</th><th>Ref</th><th>Exch</th><th>Order IDs</th><th>Feedback</th></tr></thead><tbody>`;
+  for (const r of rev) {
+    const [,lbl,cls] = SHIFT(r.shift);
+    const aov = r.aov != null ? r.aov : (r.sales && r.orders ? r.sales / r.orders : null);
+    const ratio = r.ratio != null ? r.ratio : (r.qty && r.orders ? r.qty / r.orders : null);
+    const dS = r.dSales;
+    const ids = (r.first || r.last) ? esc(r.first || "?") + (r.last ? " → " + esc(r.last) : "") : "—";
+    h += `<tr><td style="white-space:nowrap">${fmtS(r.date)}<div class="time">${r.date.getFullYear()}</div></td>
+      <td><b>${esc(r.member)}</b></td>
+      <td>${r.shift ? `<span class="pill ${cls}">${lbl}</span>` : '<span class="muted">—</span>'}</td>
+      <td><b>${fmtN(r.sales)}</b></td><td>${fmtN(r.orders)}</td><td>${fmtN(r.qty)}</td>
+      <td>${aov != null ? fmtN(aov) : "—"}</td>
+      <td>${ratio != null ? ratio.toFixed(2) : "—"}</td>
+      <td>${dS == null ? '<span class="muted">—</span>' : `<b style="color:${dS >= 0 ? 'var(--mid)' : 'var(--red)'}">${dS >= 0 ? '+' : ''}${dS.toFixed(0)}%</b>`}</td>
+      <td>${fmtN(r.oos)}</td><td>${fmtN(r.refunds)}</td><td>${fmtN(r.exchanges)}</td>
+      <td style="white-space:nowrap;font-size:11.5px;color:#4d6361">${ids}</td>
+      <td dir="auto" style="min-width:260px;max-width:420px;font-size:12px;color:#4d6361;white-space:pre-line">${esc(r.fb)}</td></tr>`;
+  }
+  document.getElementById("repTable").innerHTML = h + "</tbody></table>";
+  document.getElementById("repCount").textContent = rows.length + " entries · showing " + (repShowAll ? "all" : "latest " + rev.length);
+  const ab = document.getElementById("repAllBtn");
+  ab.style.display = revAll.length > 40 ? "" : "none";
+  ab.textContent = repShowAll ? "Show latest 40" : "Show all (" + revAll.length + ")";
+  ab.onclick = () => { repShowAll = !repShowAll; renderReports(); };
+  const fbs = [...rows].reverse().filter(r => r.fb).slice(0, 12);
+  document.getElementById("fbList").innerHTML = fbs.map(r =>
+    `<li><div class="d">${esc(r.member)} · ${fmtS(r.date)}, ${r.date.getFullYear()}</div><div class="t" dir="auto">${esc(r.fb)}</div></li>`).join("") || '<li class="muted">No feedback in this range.</li>';
+}
+
+/* ---------- EXPORT SNAPSHOT ---------- */
+async function exportSnapshot(){
+  try { await loadReports(); } catch(e) {}
+  const doc = document.documentElement.cloneNode(true);
+  for (const idv of ["sheet-data","reports-data"]) { const b = doc.querySelector("#" + idv); if (b) b.remove(); }
+  let h = "<!DOCTYPE html>\n" + doc.outerHTML;
+  const today = new Date().toLocaleDateString("en-US",{ month:"long", day:"numeric", year:"numeric" });
+  // Always embed weeks as JSON — reliable regardless of data source
+  const weeksJson = JSON.stringify(weeks.map(w => ({
+    title: w.title, people: w.people,
+    rows: w.rows.map(r => Object.assign({}, r, { date: r.date.toISOString() }))
+  }))).replace(/<\//g, "<\\/");
+  let block = '<scr' + 'ipt type="application/json" id="sheet-data" data-date="' + today + '">\n' + weeksJson + '\n</scr' + 'ipt>';
+  if (rawReports && Object.keys(rawReports).length)
+    block += '\n<scr' + 'ipt type="application/json" id="reports-data">' + JSON.stringify(rawReports).replace(/<\//g,"<\\/") + '</scr' + 'ipt>';
+  h = h.replace(/<body([^>]*)>/i, m => m + "\n" + block);
+  const b = new Blob([h], { type:"text/html" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(b);
+  a.download = "Vendoor-Team-Schedule-Shareable.html";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/* ---------- SETUP ---------- */
+function setup(source, snapDate){
+  A = analyze();
+  const badge = document.getElementById("srcBadge");
+  if (source === "live") {
+    badge.innerHTML = '<span class="badge live"><span class="d"></span>LIVE</span>';
+    document.getElementById("updated").textContent = "Synced from Google Sheets · " + new Date().toLocaleString("en-US");
+  } else {
+    badge.innerHTML = '<span class="badge snap"><span class="d"></span>SNAPSHOT</span>';
+    document.getElementById("updated").textContent = "Data as of " + snapDate;
+  }
+  const eb = document.getElementById("exportBtn");
+  eb.style.display = source !== "snapshot" ? "" : "none";
+  eb.onclick = exportSnapshot;
+  allRows = weeks.flatMap(w => w.rows);
+  curPer = A.per;
+  renderHero(); renderKpis(); renderAttention(); renderDuty(); renderLog();
+  const minD = allRows[0].date, maxD = allRows.at(-1).date;
+  const dp = document.getElementById("dayPick");
+  dp.min = iso(minD); dp.max = iso(maxD);
+  const now = new Date();
+  dp.value = iso(now < minD ? minD : (now > maxD ? maxD : now));
+  dp.onchange = () => {
+    if (!dp.value) { selDate = null; renderDuty(); renderWeek(); return; }
+    selDate = fromIso(dp.value);
+    renderDuty(selDate);
+    const wi = weeks.findIndex(w => w.rows[0].date <= selDate && w.rows.at(-1).date >= selDate);
+    if (wi >= 0) { weekIdx = wi; document.getElementById("weekSel").value = wi; }
+    renderWeek();
+  };
+  for (const id of ["rangeFrom","rangeTo"]) {
+    const el = document.getElementById(id);
+    el.min = iso(minD); el.max = iso(maxD);
+    el.onchange = () => { document.getElementById("periodSel").value = "custom"; applyRange(); };
+  }
+  const psel = document.getElementById("periodSel");
+  const mkeys = [];
+  allRows.forEach(r => { const k = r.date.getFullYear() + "-" + r.date.getMonth(); if (!mkeys.some(x => x.k === k)) mkeys.push({ k, d: r.date }); });
+  psel.innerHTML = '<option value="all">All period</option><option value="custom" hidden>Custom range</option>' +
+    mkeys.map(x => `<option value="m:${x.k}">${x.d.toLocaleDateString("en-US",{ month:"long", year:"numeric" })}</option>`).join("") +
+    weeks.map((w,i) => `<option value="w:${i}">Week ${fmtS(w.rows[0].date)} – ${fmtS(w.rows.at(-1).date)}</option>`).join("");
+  psel.onchange = () => {
+    const v = psel.value, rf = document.getElementById("rangeFrom"), rt = document.getElementById("rangeTo");
+    if (v === "all") { rf.value = ""; rt.value = ""; }
+    else if (v.startsWith("m:")) { const [y,m] = v.slice(2).split("-").map(Number); rf.value = iso(new Date(y,m,1)); rt.value = iso(new Date(y,m+1,0)); }
+    else if (v.startsWith("w:")) { const w = weeks[+v.slice(2)]; rf.value = iso(w.rows[0].date); rt.value = iso(w.rows.at(-1).date); }
+    applyRange();
+  };
+  document.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => {
+    repMode = b.dataset.m;
+    document.querySelectorAll("#modeSeg button").forEach(x => x.classList.toggle("on", x === b));
+    renderPeople();
+  });
+  applyRange();
+  const today = new Date();
+  weekIdx = weeks.length - 1;
+  weeks.forEach((w,i) => { if (w.rows[0].date <= today && w.rows.at(-1).date >= today) weekIdx = i; });
+  const ws = document.getElementById("weekSel");
+  ws.innerHTML = weeks.map((w,i) => `<option value="${i}" ${i===weekIdx?"selected":""}>Week of ${fmtS(w.rows[0].date)} – ${fmtS(w.rows.at(-1).date)}, ${w.rows[0].date.getFullYear()}</option>`).join("");
+  ws.onchange = () => { weekIdx = +ws.value; renderWeek(); };
+  document.getElementById("weekDlBtn").onclick = drawWeekPNG;
+  renderWeek();
+  const cw = document.getElementById("cardWeek");
+  cw.innerHTML = ws.innerHTML; cw.value = weekIdx;
+  fillCardMembers();
+  cw.onchange = () => { fillCardMembers(); drawCard(); };
+  document.getElementById("cardMember").onchange = drawCard;
+  document.getElementById("dlBtn").onclick = () => {
+    const cv = document.getElementById("cardCanvas");
+    const nm = document.getElementById("cardMember").value.replace(/[^\w]+/g,"_");
+    const wk = weeks[+cw.value];
+    const fn = `Vendoor_Schedule_${nm}_${fmtS(wk.rows[0].date).replace(/\s/g,"")}-${fmtS(wk.rows.at(-1).date).replace(/\s/g,"")}.png`;
+    cv.toBlob(b => { const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = fn; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); });
+  };
+  document.querySelectorAll("#tabs button").forEach(t => t.onclick = () => setView(t.dataset.v));
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("app").style.display = "";
+  makeOverviewCharts();
+}
+
+async function loadViaSheetsMCP(){
+  // 1. Get sheet titles (skip ReportsHub)
+  const metaR = await window.cowork.callMcpTool(SHEETS_META, {
+    spreadsheetId: FILE_ID,
+    fields: ["sheets.properties.title","sheets.properties.index"]
+  });
+  let sheetTitles;
+  try {
+    const data = metaR.structuredContent || JSON.parse(metaR.content?.[0]?.text||"{}");
+    sheetTitles = (data.sheets||[])
+      .sort((a,b)=>a.properties.index-b.properties.index)
+      .map(s=>s.properties.title)
+      .filter(t=>t.trim()!=="ReportsHub");
+  } catch(e) { throw new Error("Cannot read sheet list: "+e.message); }
+
+  // 2. Load last 10 weeks only (most recent data + a few older for context)
+  const recent = sheetTitles.slice(-10);
+  const loaded = [];
+  for (const title of recent) {
+    try {
+      const r = await window.cowork.callMcpTool(SHEETS_TOOL, {
+        spreadsheetId: FILE_ID,
+        range: "'" + title.replace(/'/g,"''") + "'!A:Z"
+      });
+      const data = r.structuredContent || JSON.parse(r.content?.[0]?.text||"{}");
+      const week = parseFromGrid(data.values);
+      if (week) loaded.push({ title, rows: week.rows, people: week.people });
+    } catch(e) { /* skip unreadable sheets */ }
+  }
+  return loaded;
+}
+
+async function load(){
+  try {
+    const embedded = document.getElementById("sheet-data");
+    let md, source, snapDate = "";
+    if (embedded) {
+      source = "snapshot";
+      snapDate = embedded.dataset.date || "";
+      if (embedded.type === "application/json") {
+        // Weeks were serialized as JSON (Sheets / Apps Script snapshot)
+        try {
+          const parsed = JSON.parse(embedded.textContent);
+          weeks = parsed.map(w => ({
+            title: w.title, people: w.people,
+            rows: w.rows.map(r => Object.assign({}, r, { date: new Date(r.date) }))
+          }));
+        } catch(e) { weeks = []; }
+      } else {
+        // Legacy markdown snapshot (Drive connector)
+        md = embedded.textContent;
+        rawMd = md;
+        weeks = parse(md);
+      }
+      if (!weeks.length) throw new Error("No schedule tables found in the snapshot.");
+    } else if (APPS_SCRIPT_URL && !window.cowork) {
+      // ── Cloud mode: standalone HTML file (no Cowork bridge) ──
+      // fetch() works here because there's no CSP restriction outside Claude.
+      source = "apps-script";
+      try {
+        const resp = await fetch(APPS_SCRIPT_URL + "?action=schedule", { redirect: "follow" });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const sheets = await resp.json();  // [{title, values}, ...]
+        weeks = sheets
+          .map(function(s) {
+            const parsed = parseFromGrid(s.values);
+            if (!parsed) return null;
+            return { title: s.title, rows: parsed.rows, people: parsed.people };
+          })
+          .filter(Boolean);
+      } catch(e) {
+        throw new Error("Could not fetch schedule from Apps Script: " + e.message);
+      }
+      if (!weeks.length) throw new Error("No schedule data returned from Apps Script.");
+    } else {
+      if (!window.cowork) throw new Error("No data source available. Set APPS_SCRIPT_URL or open via the Claude desktop app.");
+      // Try Drive connector first (fast, single call)
+      try {
+        const r = await window.cowork.callMcpTool(TOOL, { fileId: FILE_ID });
+        if (!r.isError) {
+          md = r.structuredContent?.fileContent;
+          if (!md) { const txt = r.content?.[0]?.text||""; try { md = JSON.parse(txt).fileContent; } catch { md = txt; } }
+          rawMd = md || "";
+          weeks = parse(md || "");
+        }
+      } catch(e) { /* connector unavailable, will fall through */ }
+
+      // Fallback: use Google Sheets API (works even when sheet is too large for Drive connector)
+      if (!weeks.length) {
+        source = "sheets-api";
+        weeks = await loadViaSheetsMCP();
+      } else {
+        source = "live";
+      }
+      if (!weeks.length) throw new Error("No schedule tables found. Try the reload button.");
+    }
+    setup(source, snapDate);
+  } catch (e) {
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("app").style.display = "";
+    document.getElementById("app").innerHTML = `<div class="err">Could not load schedule data: ${esc(e.message)}<br>Try the reload button above and check the Google Drive connection.</div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>
