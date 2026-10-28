@@ -158,6 +158,21 @@
   </div>
 </div>
 <div class="wrap">
+  <!-- New Week Modal -->
+  <div id="newWeekOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:none;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:28px 24px;min-width:320px;max-width:92vw;box-shadow:0 8px 40px rgba(0,0,0,.22);">
+      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:16px;">＋ New Week</div>
+      <label style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;">Week Title</label>
+      <input id="nwTitle" type="text" placeholder="e.g. First Week November" style="display:block;width:100%;box-sizing:border-box;margin:6px 0 4px;font-size:14px;padding:8px 10px;border:1.5px solid #c5bfaf;border-radius:8px;font-family:inherit;color:var(--teal);font-weight:600;">
+      <div id="nwDateHint" style="font-size:12px;color:var(--mut);margin-bottom:16px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="doNewWeek()" style="flex:1;padding:9px;border:0;border-radius:8px;background:var(--teal);color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">Create Week</button>
+        <button onclick="closeNewWeek()" style="padding:9px 14px;border:0;border-radius:8px;background:#e6e0d0;color:var(--teal);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+      </div>
+      <div id="nwStatus" style="margin-top:10px;font-size:12px;font-weight:700;min-height:18px;"></div>
+    </div>
+  </div>
+
   <div id="floatEdit">
     <div class="fe-label" id="feLabel">Edit</div>
     <select id="feSelect" style="display:none"></select>
@@ -203,7 +218,7 @@
     <div id="v-schedule" style="display:none">
       <div class="card">
         <h2><span>Weekly Schedule</span>
-          <span class="sub2"><select id="weekSel"></select> <button class="btn" id="weekDlBtn">⬇ Week PNG</button> <span id="inlineToast" style="font-size:12px;font-weight:700;margin-left:8px"></span></span></h2>
+          <span class="sub2"><select id="weekSel"></select> <button class="btn" id="weekDlBtn">⬇ Week PNG</button> <button class="btn" id="newWeekBtn" onclick="openNewWeek()" style="margin-left:4px">＋ New Week</button> <span id="inlineToast" style="font-size:12px;font-weight:700;margin-left:8px"></span></span></h2>
         <div style="overflow-x:auto" id="weekTable"></div>
       </div>
     </div>
@@ -271,6 +286,7 @@ const ALIAS = { "Suhila": "Suhaila Magdy", "Sohaila": "Sohaila M.", "Habiba": "H
 // ▼ بعد ما تعمل Deploy للـ Apps Script، الصق لينك الـ Web App هنا (اختياري — يحل مشكلة الريبورتات نهائياً)
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQ2Q-ZJQsbp95DAe8_aICQ8mozo1rm8006Dbr02X8P7gSzlLahFNxau9qy79ztjqbC/exec";
 let weeks = [], A = null, weekIdx = 0, charts = {}, allRows = [], curPer = null, selDate = null, rawMd = "";
+let sheetOpts = { resp: [], time: [] }; // loaded from Apps Script data validation
 
 // JSONP fetch — works cross-origin even when CORS headers are missing (e.g. Apps Script redirect)
 function jsonpFetch(url) {
@@ -569,9 +585,12 @@ function inlineEdit(el, field, wk, ri, ei) {
   if (isText) {
     feText.value = currentVal;
   } else if (isInput) {
-    // Free-text input with datalist suggestions from live data
+    // Free-text input with datalist: sheet validation opts first, then live data fallback
     feInput.value = currentVal;
-    const suggestions = uniqueFieldValues(field);
+    const sheetList = field === "resp" ? sheetOpts.resp : sheetOpts.time;
+    const liveList  = uniqueFieldValues(field);
+    // Union: sheet options first, then any extra values from live data
+    const suggestions = [...new Set([...sheetList, ...liveList])].filter(Boolean);
     feSugg.innerHTML = suggestions.map(s => `<option value="${esc(s)}">`).join("");
   } else {
     // Dropdown for shift / approved
@@ -1642,6 +1661,13 @@ async function load(){
       }
       if (!weeks.length) throw new Error("No schedule tables found. Try the reload button.");
     }
+    // Fetch dropdown options from Apps Script data validation (async, non-blocking)
+    if (APPS_SCRIPT_URL) {
+      jsonpFetch(APPS_SCRIPT_URL + "?action=options").then(function(o) {
+        if (o && Array.isArray(o.resp)) sheetOpts.resp = o.resp;
+        if (o && Array.isArray(o.time)) sheetOpts.time = o.time;
+      }).catch(function(){});
+    }
     setup(source, snapDate);
   } catch (e) {
     document.getElementById("loading").style.display = "none";
@@ -1649,6 +1675,78 @@ async function load(){
     document.getElementById("app").innerHTML = `<div class="err">Could not load schedule data: ${esc(e.message)}<br>Try the reload button above and check the Google Drive connection.</div>`;
   }
 }
+/* ---------- NEW WEEK ---------- */
+function openNewWeek() {
+  const overlay = document.getElementById("newWeekOverlay");
+  overlay.style.display = "flex";
+  // Suggest title based on last week's date
+  const lastWeek = weeks[weeks.length - 1];
+  const input = document.getElementById("nwTitle");
+  const hint  = document.getElementById("nwDateHint");
+  document.getElementById("nwStatus").textContent = "";
+  if (lastWeek && lastWeek.rows && lastWeek.rows.length) {
+    const lastDate = lastWeek.rows[lastWeek.rows.length - 1].date;
+    const nextStart = new Date(lastDate);
+    nextStart.setDate(nextStart.getDate() + 1);
+    const nextEnd   = new Date(nextStart);
+    nextEnd.setDate(nextStart.getDate() + 6);
+    const mo = d => d.toLocaleString("en-US", { month:"long" });
+    const dd = d => d.getDate();
+    hint.textContent = `Dates: ${fmtD(nextStart)} – ${fmtD(nextEnd)}`;
+    // Suggest name like "First Week November"
+    const ordinals = ["","First","Second","Third","Fourth","Fifth"];
+    const weekOfMonth = Math.ceil(nextStart.getDate() / 7);
+    input.value = (ordinals[weekOfMonth] || "Week") + " Week " + mo(nextStart);
+  } else {
+    hint.textContent = "";
+    input.value = "";
+  }
+  setTimeout(() => { input.focus(); input.select(); }, 50);
+}
+
+function closeNewWeek() {
+  document.getElementById("newWeekOverlay").style.display = "none";
+}
+
+async function doNewWeek() {
+  if (!APPS_SCRIPT_URL) return;
+  const title  = document.getElementById("nwTitle").value.trim();
+  const status = document.getElementById("nwStatus");
+  if (!title) { status.textContent = "⚠ Enter a title"; status.style.color = "#c0392b"; return; }
+  status.textContent = "Creating…"; status.style.color = "var(--mut)";
+  try {
+    const result = await jsonpFetch(
+      APPS_SCRIPT_URL + "?action=newweek&title=" + encodeURIComponent(title)
+    );
+    if (!result.ok) throw new Error(result.error || "Failed");
+    status.textContent = "✓ Created!"; status.style.color = "#3d7d75";
+    // Reload weeks from Apps Script and switch to the new one
+    setTimeout(async () => {
+      closeNewWeek();
+      const sheets = await jsonpFetch(APPS_SCRIPT_URL + "?action=schedule");
+      weeks = sheets.map(s => {
+        const p = parseFromGrid(s.values);
+        return p ? { title: s.title, rows: p.rows, people: p.people } : null;
+      }).filter(Boolean);
+      A = analyze(); allRows = weeks.flatMap(w => w.rows);
+      // Switch to newly created week
+      const newIdx = weeks.findIndex(w => w.title === title);
+      if (newIdx >= 0) weekIdx = newIdx;
+      const ws = document.getElementById("weekSel");
+      ws.innerHTML = weeks.map((w,i) => `<option value="${i}">${esc(w.title)}</option>`).join("");
+      ws.value = weekIdx;
+      renderWeek(); renderHero(); renderAttention();
+    }, 800);
+  } catch(err) {
+    status.textContent = "✕ " + err.message; status.style.color = "#c0392b";
+  }
+}
+
+// Close modal when clicking outside
+document.getElementById("newWeekOverlay").addEventListener("click", function(e) {
+  if (e.target === this) closeNewWeek();
+});
+
 load();
 </script>
 </body>
