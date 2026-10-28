@@ -507,7 +507,14 @@ async function writeCell(sheetTitle, sheetRow, colIdx, value){
       + "&col="    + colIdx
       + "&value="  + encodeURIComponent(value);
     const result = await jsonpFetch(url);
-    if (!result.ok) throw new Error(result.error || "Write failed");
+    if (result && result.ok) {
+      // success — do nothing
+    } else if (result && result.status === "ok") {
+      // Old Apps Script version — action=update not deployed yet
+      throw new Error("Deploy Code.gs Version 3 in Apps Script first");
+    } else {
+      throw new Error(result && result.error ? result.error : "Write failed");
+    }
   } else {
     throw new Error("No write path — open in Claude or set APPS_SCRIPT_URL.");
   }
@@ -550,10 +557,13 @@ function inlineEdit(el, field, wk, ri, ei) {
   if (isText) {
     feText.value = currentVal;
   } else {
-    // For "approved" use fixed options; for others derive from live data
+    // Fixed options for shift and approved; derive from live data for resp/time
+    const SHIFT_OPTS = ["Morning", "Mid", "Night", "Off"];
     const opts = field === "approved"
       ? ["Approve", "Decline"]
-      : uniqueFieldValues(field);
+      : field === "shift"
+        ? SHIFT_OPTS
+        : uniqueFieldValues(field);
     feSelect.innerHTML = "";
     // Always add a blank/current-value fallback first if not in list
     if (!opts.includes(currentVal) && currentVal)
