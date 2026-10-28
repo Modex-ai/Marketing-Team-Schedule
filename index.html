@@ -311,7 +311,7 @@ const ALIAS = { "Suhila": "Suhaila Magdy", "Sohaila": "Sohaila M.", "Habiba": "H
 // ▼ بعد ما تعمل Deploy للـ Apps Script، الصق لينك الـ Web App هنا (اختياري — يحل مشكلة الريبورتات نهائياً)
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQ2Q-ZJQsbp95DAe8_aICQ8mozo1rm8006Dbr02X8P7gSzlLahFNxau9qy79ztjqbC/exec";
 let weeks = [], A = null, weekIdx = 0, charts = {}, allRows = [], curPer = null, selDate = null, rawMd = "";
-let sheetOpts = { resp: [], time: [] }; // loaded from Apps Script data validation
+let sheetOpts = { resp: [], time: [], shift: [] }; // loaded from Apps Script data validation
 
 // JSONP fetch — works cross-origin even when CORS headers are missing (e.g. Apps Script redirect)
 function jsonpFetch(url) {
@@ -575,12 +575,11 @@ async function writeCell(sheetTitle, sheetRow, colIdx, value){
 function uniqueFieldValues(field) {
   const set = new Set();
   const recent = weeks.slice(-3);
-  const excludeOff = (field === "resp" || field === "time");
   for (const w of recent) {
     for (const r of w.rows) {
       for (const e of r.entries) {
         const v = (e[field] || "").trim();
-        if (v && !(excludeOff && v.toLowerCase() === "off")) set.add(v);
+        if (v) set.add(v);
       }
     }
   }
@@ -642,7 +641,7 @@ function inlineEdit(el, field, wk, ri, ei) {
     const opts = field === "approved"
       ? ["Approve", "Decline"]
       : field === "shift"
-        ? SHIFT_OPTS
+        ? (sheetOpts.shift && sheetOpts.shift.length ? sheetOpts.shift : SHIFT_OPTS)
         : uniqueFieldValues(field);
     feSelect.innerHTML = "";
     if (!opts.includes(currentVal) && currentVal)
@@ -1734,6 +1733,7 @@ async function load(){
       jsonpFetch(APPS_SCRIPT_URL + "?action=options").then(function(o) {
         if (o && Array.isArray(o.resp)) sheetOpts.resp = o.resp;
         if (o && Array.isArray(o.time)) sheetOpts.time = o.time;
+        if (o && Array.isArray(o.shift) && o.shift.length) sheetOpts.shift = o.shift;
       }).catch(function(){});
     }
     setup(source, snapDate);
