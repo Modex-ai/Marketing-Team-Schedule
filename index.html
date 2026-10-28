@@ -277,7 +277,7 @@ function jsonpFetch(url) {
     const script = document.createElement("script");
     const timer = setTimeout(function() {
       cleanup(); reject(new Error("JSONP timeout"));
-    }, 15000);
+    }, 30000);
     function cleanup() {
       clearTimeout(timer);
       delete window[cbName];
