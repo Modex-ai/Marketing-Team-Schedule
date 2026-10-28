@@ -486,19 +486,9 @@ function entryCell(e, meta){
 function colToLetter(n){ let s=""; while(n>0){s=String.fromCharCode(64+(n%26||26))+s;n=Math.floor((n-1)/26);} return s; }
 
 async function writeCell(sheetTitle, sheetRow, colIdx, value){
-  const range = "'" + sheetTitle.replace(/'/g,"''") + "'!" + colToLetter(colIdx) + sheetRow;
   if (window.cowork) {
-    // Inside Claude — use Sheets MCP directly (fetch() is blocked by CSP)
-  } else if (APPS_SCRIPT_URL) {
-    // Standalone HTML — fetch() works fine
-    const resp = await fetch(APPS_SCRIPT_URL + "?action=update", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ sheetTitle, rowIdx: sheetRow, colIdx, value })
-    });
-    if (!resp.ok) throw new Error("HTTP " + resp.status);
-  }
-  if (window.cowork) {
+    // Inside Claude — use Sheets MCP directly
+    const range = "'" + sheetTitle.replace(/'/g,"''") + "'!" + colToLetter(colIdx) + sheetRow;
     const r = await window.cowork.callMcpTool(SHEETS_UPDATE, {
       spreadsheetId: FILE_ID,
       range,
@@ -508,8 +498,18 @@ async function writeCell(sheetTitle, sheetRow, colIdx, value){
       const detail = r.content?.[0]?.text || JSON.stringify(r.structuredContent || "");
       throw new Error(detail || "Sheets write error");
     }
+  } else if (APPS_SCRIPT_URL) {
+    // Standalone / Vercel — use JSONP GET (avoids CORS; POST is blocked by redirect)
+    const url = APPS_SCRIPT_URL
+      + "?action=update"
+      + "&sheet="  + encodeURIComponent(sheetTitle)
+      + "&row="    + sheetRow
+      + "&col="    + colIdx
+      + "&value="  + encodeURIComponent(value);
+    const result = await jsonpFetch(url);
+    if (!result.ok) throw new Error(result.error || "Write failed");
   } else {
-    throw new Error("No write path — open in Claude or use standalone HTML with APPS_SCRIPT_URL.");
+    throw new Error("No write path — open in Claude or set APPS_SCRIPT_URL.");
   }
 }
 
