@@ -1560,7 +1560,7 @@ async function load(){
     } else if (APPS_SCRIPT_URL && !window.cowork) {
       // ── Cloud mode: standalone HTML file (no Cowork bridge) ──
       // fetch() works here because there's no CSP restriction outside Claude.
-      source = "apps-script";
+      source = "live";
       try {
         const sheets = await jsonpFetch(APPS_SCRIPT_URL + "?action=schedule");
         weeks = sheets
