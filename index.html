@@ -484,20 +484,21 @@ function renderAttention(){
 function entryCell(e, meta){
   // meta = {wk, ri, ei, sheet, row, shiftCol, respCol, timeCol} — optional; enables inline editing
   const [k,lbl,cls] = SHIFT(e.shift);
-  const da = meta ? `data-sheet="${esc(meta.sheet)}" data-row="${meta.row}" data-val="${esc(e.shift)}"` : "";
+  // da contains sheet reference WITHOUT data-val (each element sets its own data-val)
+  const da = meta ? `data-sheet="${esc(meta.sheet)}" data-row="${meta.row}"` : "";
   let h = meta
-    ? `<span class="pill ${cls} editable" ${da} data-col="${meta.shiftCol}" onclick="inlineEdit(this,'shift',${meta.wk},${meta.ri},${meta.ei})">${lbl}</span>`
+    ? `<span class="pill ${cls} editable" ${da} data-val="${esc(e.shift)}" data-col="${meta.shiftCol}" onclick="inlineEdit(this,'shift',${meta.wk},${meta.ri},${meta.ei})">${lbl}</span>`
     : `<span class="pill ${cls}">${lbl}</span>`;
   if (k !== "resigned") {
     // Responsibility: always show editable placeholder when in edit mode, even if empty
     if (meta) {
-      h += `<div class="resp editable" ${da} data-col="${meta.respCol}" data-val="${esc(e.resp)}" onclick="inlineEdit(this,'resp',${meta.wk},${meta.ri},${meta.ei})">${e.resp ? esc(e.resp) : '<span style="opacity:.35;font-size:11px">+ resp</span>'}</div>`;
+      h += `<div class="resp editable" ${da} data-val="${esc(e.resp)}" data-col="${meta.respCol}" onclick="inlineEdit(this,'resp',${meta.wk},${meta.ri},${meta.ei})">${e.resp ? esc(e.resp) : '<span style="opacity:.35;font-size:11px">+ resp</span>'}</div>`;
     } else if (e.resp) {
       h += `<div class="resp">${esc(e.resp)}</div>`;
     }
     // Time: always show editable placeholder when in edit mode, even if empty
     if (meta) {
-      h += `<div class="time editable" ${da} data-col="${meta.timeCol}" data-val="${esc(e.time)}" onclick="inlineEdit(this,'time',${meta.wk},${meta.ri},${meta.ei})">${e.time ? esc(e.time) : '<span style="opacity:.35;font-size:11px">+ time</span>'}</div>`;
+      h += `<div class="time editable" ${da} data-val="${esc(e.time)}" data-col="${meta.timeCol}" onclick="inlineEdit(this,'time',${meta.wk},${meta.ri},${meta.ei})">${e.time ? esc(e.time) : '<span style="opacity:.35;font-size:11px">+ time</span>'}</div>`;
     } else if (e.time) {
       h += `<div class="time">${esc(e.time)}</div>`;
     }
