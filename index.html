@@ -571,14 +571,16 @@ async function writeCell(sheetTitle, sheetRow, colIdx, value){
 }
 
 // Collect unique values for a given field from the last 3 weeks only
+// Excludes "Off" for resp/time fields (Off is only valid for shift)
 function uniqueFieldValues(field) {
   const set = new Set();
   const recent = weeks.slice(-3);
+  const excludeOff = (field === "resp" || field === "time");
   for (const w of recent) {
     for (const r of w.rows) {
       for (const e of r.entries) {
         const v = (e[field] || "").trim();
-        if (v) set.add(v);
+        if (v && !(excludeOff && v.toLowerCase() === "off")) set.add(v);
       }
     }
   }
