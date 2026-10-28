@@ -267,8 +267,28 @@ const SHEETS_META     = "mcp__d1384f4f-7156-4983-b28f-016f724c9b64__get_spreadsh
 const SHEETS_UPDATE   = "mcp__d1384f4f-7156-4983-b28f-016f724c9b64__update_values";
 const ALIAS = { "Suhila": "Suhaila Magdy", "Sohaila": "Sohaila M.", "Habiba": "Habiba" };
 // ▼ بعد ما تعمل Deploy للـ Apps Script، الصق لينك الـ Web App هنا (اختياري — يحل مشكلة الريبورتات نهائياً)
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwDRZEnKORjd1Zv1LWoN_o_zn0EsTD91Hf2G4ehmLlY1SMd9kLtHW-Nbw8eS4UGiLcR/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQ2Q-ZJQsbp95DAe8_aICQ8mozo1rm8006Dbr02X8P7gSzlLahFNxau9qy79ztjqbC/exec";
 let weeks = [], A = null, weekIdx = 0, charts = {}, allRows = [], curPer = null, selDate = null, rawMd = "";
+
+// JSONP fetch — works cross-origin even when CORS headers are missing (e.g. Apps Script redirect)
+function jsonpFetch(url) {
+  return new Promise(function(resolve, reject) {
+    const cbName = "_cb" + Date.now() + Math.floor(Math.random()*1e6);
+    const script = document.createElement("script");
+    const timer = setTimeout(function() {
+      cleanup(); reject(new Error("JSONP timeout"));
+    }, 15000);
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = function(data) { cleanup(); resolve(data); };
+    script.onerror = function() { cleanup(); reject(new Error("JSONP load error")); };
+    script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cbName;
+    document.head.appendChild(script);
+  });
+}
 let repMode = "own", curReport = null;
 
 const SHIFT = s => {
@@ -1182,9 +1202,7 @@ async function loadReports(force){
     } else if (APPS_SCRIPT_URL && !window.cowork) {
       // ── 3. Standalone HTML mode → fetch JSON hub from Apps Script ──────────
       repSource = "hub-fetch";
-      const resp = await fetch(APPS_SCRIPT_URL + "?action=hub", { redirect: "follow" });
-      if (!resp.ok) throw new Error("Hub fetch failed: " + resp.status);
-      const data = await resp.json();
+      const data = await jsonpFetch(APPS_SCRIPT_URL + "?action=hub");
       reportRows = data
         .map(r => ({
           member: r.member, date: parseRDate(r.date), shift: r.shift,
@@ -1544,9 +1562,7 @@ async function load(){
       // fetch() works here because there's no CSP restriction outside Claude.
       source = "apps-script";
       try {
-        const resp = await fetch(APPS_SCRIPT_URL + "?action=schedule", { redirect: "follow" });
-        if (!resp.ok) throw new Error("HTTP " + resp.status);
-        const sheets = await resp.json();  // [{title, values}, ...]
+        const sheets = await jsonpFetch(APPS_SCRIPT_URL + "?action=schedule");
         weeks = sheets
           .map(function(s) {
             const parsed = parseFromGrid(s.values);
