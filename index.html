@@ -173,12 +173,32 @@
     </div>
   </div>
 
+  <!-- Manage Dropdown Options Modal -->
+  <div id="manageOptsOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:11000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;padding:24px 20px;min-width:300px;max-width:92vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25);">
+      <div style="font-size:14px;font-weight:800;color:var(--teal);margin-bottom:14px;">⚙ Manage <span id="moFieldLabel"></span> Options</div>
+      <div id="moList" style="margin-bottom:12px;"></div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;">
+        <input id="moNewOpt" type="text" placeholder="New option…" style="flex:1;font-size:13px;padding:6px 8px;border:1.5px solid #c5bfaf;border-radius:7px;font-family:inherit;color:var(--teal);" onkeydown="if(event.key==='Enter')addManageOpt()">
+        <button onclick="addManageOpt()" style="padding:6px 12px;border:0;border-radius:7px;background:var(--teal);color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;">Add</button>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveManageOpts()" style="flex:1;padding:8px;border:0;border-radius:8px;background:var(--teal);color:#fff;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">Save to Sheet</button>
+        <button onclick="closeManageOpts()" style="padding:8px 14px;border:0;border-radius:8px;background:#e6e0d0;color:var(--teal);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+      </div>
+      <div id="moStatus" style="margin-top:8px;font-size:12px;font-weight:700;min-height:16px;"></div>
+    </div>
+  </div>
+
   <div id="floatEdit">
     <div class="fe-label" id="feLabel">Edit</div>
     <select id="feSelect" style="display:none"></select>
     <datalist id="feSuggestions"></datalist>
     <input id="feInput" type="text" list="feSuggestions" style="display:none;width:100%;font-size:13px;font-family:inherit;padding:6px 8px;border:1px solid #c5bfaf;border-radius:7px;background:#fff;color:var(--teal);font-weight:600;box-sizing:border-box;" placeholder="Type or pick…">
     <textarea id="feText" style="display:none" placeholder="Note for this day…"></textarea>
+    <div id="feManageLink" style="display:none;text-align:right;margin-top:4px;">
+      <span onclick="openManageOpts(_fe&&_fe.field)" style="font-size:11px;color:var(--teal);cursor:pointer;opacity:.7;text-decoration:underline;">⚙ Manage options</span>
+    </div>
     <div class="fe-actions">
       <button class="fe-save" onclick="floatSave()">Save</button>
       <button class="fe-cancel" onclick="floatClose()">Cancel</button>
@@ -583,17 +603,16 @@ function inlineEdit(el, field, wk, ri, ei) {
   feSelect.style.display = (!isText && !isInput) ? "" : "none";
   feInput.style.display  = isInput  ? "" : "none";
   feText.style.display   = isText   ? "" : "none";
+  document.getElementById("feManageLink").style.display = "none"; // hidden by default, shown for resp/time
 
   if (isText) {
     feText.value = currentVal;
   } else if (isInput) {
-    // Free-text input with datalist: sheet validation opts first, then live data fallback
+    // Use ONLY sheet data-validation options (exact match, no duplicates)
     feInput.value = currentVal;
-    const sheetList = field === "resp" ? sheetOpts.resp : sheetOpts.time;
-    const liveList  = uniqueFieldValues(field);
-    // Union: sheet options first, then any extra values from live data
-    const suggestions = [...new Set([...sheetList, ...liveList])].filter(Boolean);
+    const suggestions = (field === "resp" ? sheetOpts.resp : sheetOpts.time).filter(Boolean);
     feSugg.innerHTML = suggestions.map(s => `<option value="${esc(s)}">`).join("");
+    document.getElementById("feManageLink").style.display = "";
   } else {
     // Dropdown for shift / approved
     const SHIFT_OPTS = ["Morning", "Mid", "Night", "Off"];
@@ -1677,6 +1696,76 @@ async function load(){
     document.getElementById("app").innerHTML = `<div class="err">Could not load schedule data: ${esc(e.message)}<br>Try the reload button above and check the Google Drive connection.</div>`;
   }
 }
+/* ---------- MANAGE DROPDOWN OPTIONS ---------- */
+let _moField = null, _moOpts = [];
+
+function openManageOpts(field) {
+  if (!field || (field !== "resp" && field !== "time")) return;
+  _moField = field;
+  _moOpts = [...(field === "resp" ? sheetOpts.resp : sheetOpts.time)];
+  document.getElementById("moFieldLabel").textContent = field === "resp" ? "Responsibility" : "Time";
+  document.getElementById("moStatus").textContent = "";
+  document.getElementById("moNewOpt").value = "";
+  renderManageList();
+  const ov = document.getElementById("manageOptsOverlay");
+  ov.style.display = "flex";
+  setTimeout(() => document.getElementById("moNewOpt").focus(), 50);
+}
+
+function closeManageOpts() {
+  document.getElementById("manageOptsOverlay").style.display = "none";
+}
+
+function renderManageList() {
+  document.getElementById("moList").innerHTML = _moOpts.length
+    ? _moOpts.map((o, i) =>
+        `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f0ebe0;">
+          <span style="flex:1;font-size:13px;color:var(--teal)">${esc(o)}</span>
+          <button onclick="removeManageOpt(${i})" title="Delete" style="border:0;background:none;color:#c0392b;cursor:pointer;font-size:15px;line-height:1;padding:0 4px;">✕</button>
+        </div>`).join("")
+    : `<div style="font-size:12px;color:var(--mut);padding:8px 0">No options yet.</div>`;
+}
+
+function addManageOpt() {
+  const inp = document.getElementById("moNewOpt");
+  const v = inp.value.trim();
+  if (!v) return;
+  if (_moOpts.includes(v)) { inp.select(); return; }
+  _moOpts.push(v);
+  inp.value = "";
+  renderManageList();
+  inp.focus();
+}
+
+function removeManageOpt(i) {
+  _moOpts.splice(i, 1);
+  renderManageList();
+}
+
+async function saveManageOpts() {
+  if (!_moField || !APPS_SCRIPT_URL) return;
+  const status = document.getElementById("moStatus");
+  status.textContent = "Saving…"; status.style.color = "var(--mut)";
+  try {
+    const result = await jsonpFetch(
+      APPS_SCRIPT_URL + "?action=setoptions&field=" + _moField +
+      "&opts=" + encodeURIComponent(_moOpts.join("||"))
+    );
+    if (!result.ok) throw new Error(result.error || "Failed");
+    // Update local cache immediately
+    if (_moField === "resp") sheetOpts.resp = [..._moOpts];
+    else                     sheetOpts.time = [..._moOpts];
+    status.textContent = "✓ Saved to sheet!"; status.style.color = "#3d7d75";
+    setTimeout(closeManageOpts, 1000);
+  } catch(err) {
+    status.textContent = "✕ " + err.message; status.style.color = "#c0392b";
+  }
+}
+
+document.getElementById("manageOptsOverlay").addEventListener("click", function(e) {
+  if (e.target === this) closeManageOpts();
+});
+
 /* ---------- NEW WEEK ---------- */
 function openNewWeek() {
   const overlay = document.getElementById("newWeekOverlay");
