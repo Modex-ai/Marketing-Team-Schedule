@@ -605,9 +605,9 @@ function inlineEdit(el, field, wk, ri, ei) {
   const isInput   = field === "resp" || field === "time";  // free-text + suggestions
   const feInput   = document.getElementById("feInput");
   const feOptsList = document.getElementById("feOptsList");
-  feSelect.style.display  = (!isText && !isInput) ? "" : "none";
-  feInput.style.display   = isInput ? "" : "none";
-  feOptsList.style.display = isInput ? "" : "none";
+  feSelect.style.display  = (!isText && !isInput) ? "block" : "none";
+  feInput.style.display   = isInput ? "block" : "none";
+  feOptsList.style.display = isInput ? "block" : "none";
   feText.style.display    = isText  ? "" : "none";
   document.getElementById("feManageLink").style.display = "none";
 
@@ -619,6 +619,19 @@ function inlineEdit(el, field, wk, ri, ei) {
     window._feAllOpts = (field === "resp" ? sheetOpts.resp : sheetOpts.time).filter(Boolean);
     renderFeOpts(window._feAllOpts, currentVal);
     document.getElementById("feManageLink").style.display = "";
+    // If options not loaded yet, fetch now and update list
+    if (!window._feAllOpts.length && APPS_SCRIPT_URL) {
+      renderFeOpts([], currentVal); // show loading state
+      document.getElementById("feOptsList").innerHTML = '<div class="fe-empty">Loading options…</div>';
+      jsonpFetch(APPS_SCRIPT_URL + "?action=options").then(function(o) {
+        if (o && Array.isArray(o.resp)) sheetOpts.resp = o.resp;
+        if (o && Array.isArray(o.time)) sheetOpts.time = o.time;
+        window._feAllOpts = (field === "resp" ? sheetOpts.resp : sheetOpts.time).filter(Boolean);
+        if (document.getElementById("floatEdit").style.display !== "none") {
+          renderFeOpts(window._feAllOpts, document.getElementById("feInput").value);
+        }
+      }).catch(function(){ document.getElementById("feOptsList").innerHTML = '<div class="fe-empty">Could not load options</div>'; });
+    }
   } else {
     // Dropdown for shift / approved
     const SHIFT_OPTS = ["Morning", "Mid", "Night", "Off"];
