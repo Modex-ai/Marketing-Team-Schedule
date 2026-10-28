@@ -1538,7 +1538,42 @@ async function load(){
   try {
     const embedded = document.getElementById("sheet-data");
     let md, source, snapDate = "";
-    if (embedded) {
+    if (APPS_SCRIPT_URL && !window.cowork) {
+      // ── Cloud mode: live data from Apps Script (highest priority when URL is set) ──
+      // This must come BEFORE the embedded snapshot check so that editable metadata
+      // (_sheetRow, _shiftCol, etc.) is available for inline editing.
+      source = "live";
+      try {
+        const sheets = await jsonpFetch(APPS_SCRIPT_URL + "?action=schedule");
+        weeks = sheets
+          .map(function(s) {
+            const parsed = parseFromGrid(s.values);
+            if (!parsed) return null;
+            return { title: s.title, rows: parsed.rows, people: parsed.people };
+          })
+          .filter(Boolean);
+      } catch(e) {
+        // Fall back to embedded snapshot if Apps Script is unreachable
+        if (embedded) {
+          source = "snapshot";
+          snapDate = embedded.dataset.date || "";
+          if (embedded.type === "application/json") {
+            try {
+              const parsed = JSON.parse(embedded.textContent);
+              weeks = parsed.map(w => ({
+                title: w.title, people: w.people,
+                rows: w.rows.map(r => Object.assign({}, r, { date: new Date(r.date) }))
+              }));
+            } catch(e2) { weeks = []; }
+          } else {
+            md = embedded.textContent; rawMd = md; weeks = parse(md);
+          }
+        } else {
+          throw new Error("Could not fetch schedule from Apps Script: " + e.message);
+        }
+      }
+      if (!weeks.length) throw new Error("No schedule data returned.");
+    } else if (embedded) {
       source = "snapshot";
       snapDate = embedded.dataset.date || "";
       if (embedded.type === "application/json") {
@@ -1557,23 +1592,6 @@ async function load(){
         weeks = parse(md);
       }
       if (!weeks.length) throw new Error("No schedule tables found in the snapshot.");
-    } else if (APPS_SCRIPT_URL && !window.cowork) {
-      // ── Cloud mode: standalone HTML file (no Cowork bridge) ──
-      // fetch() works here because there's no CSP restriction outside Claude.
-      source = "live";
-      try {
-        const sheets = await jsonpFetch(APPS_SCRIPT_URL + "?action=schedule");
-        weeks = sheets
-          .map(function(s) {
-            const parsed = parseFromGrid(s.values);
-            if (!parsed) return null;
-            return { title: s.title, rows: parsed.rows, people: parsed.people };
-          })
-          .filter(Boolean);
-      } catch(e) {
-        throw new Error("Could not fetch schedule from Apps Script: " + e.message);
-      }
-      if (!weeks.length) throw new Error("No schedule data returned from Apps Script.");
     } else {
       if (!window.cowork) throw new Error("No data source available. Set APPS_SCRIPT_URL or open via the Claude desktop app.");
       // Try Drive connector first (fast, single call)
