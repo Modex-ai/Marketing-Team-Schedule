@@ -617,9 +617,11 @@ function inlineEdit(el, field, wk, ri, ei) {
     // Use ONLY sheet data-validation options (exact match, no duplicates)
     feInput.value = currentVal;
     window._feAllOpts = (field === "resp" ? sheetOpts.resp : sheetOpts.time).filter(Boolean);
+    // Fallback: use uniqueFieldValues from current weeks data if sheetOpts is empty
+    if (!window._feAllOpts.length) window._feAllOpts = uniqueFieldValues(field);
     renderFeOpts(window._feAllOpts, currentVal);
     document.getElementById("feManageLink").style.display = "";
-    // If options not loaded yet, fetch now and update list
+    // If options still empty, fetch now from Apps Script and update list
     if (!window._feAllOpts.length && APPS_SCRIPT_URL) {
       renderFeOpts([], currentVal); // show loading state
       document.getElementById("feOptsList").innerHTML = '<div class="fe-empty">Loading options…</div>';
