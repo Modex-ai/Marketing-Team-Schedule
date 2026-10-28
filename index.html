@@ -545,10 +545,11 @@ async function writeCell(sheetTitle, sheetRow, colIdx, value){
   }
 }
 
-// Collect all unique values for a given field across all loaded weeks
+// Collect unique values for a given field from the last 3 weeks only
 function uniqueFieldValues(field) {
   const set = new Set();
-  for (const w of weeks) {
+  const recent = weeks.slice(-3);
+  for (const w of recent) {
     for (const r of w.rows) {
       for (const e of r.entries) {
         const v = (e[field] || "").trim();
