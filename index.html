@@ -161,6 +161,8 @@
   <div id="floatEdit">
     <div class="fe-label" id="feLabel">Edit</div>
     <select id="feSelect" style="display:none"></select>
+    <datalist id="feSuggestions"></datalist>
+    <input id="feInput" type="text" list="feSuggestions" style="display:none;width:100%;font-size:13px;font-family:inherit;padding:6px 8px;border:1px solid #c5bfaf;border-radius:7px;background:#fff;color:var(--teal);font-weight:600;box-sizing:border-box;" placeholder="Type or pick…">
     <textarea id="feText" style="display:none" placeholder="Note for this day…"></textarea>
     <div class="fe-actions">
       <button class="fe-save" onclick="floatSave()">Save</button>
@@ -470,13 +472,19 @@ function entryCell(e, meta){
   let h = meta
     ? `<span class="pill ${cls} editable" ${da} data-col="${meta.shiftCol}" onclick="inlineEdit(this,'shift',${meta.wk},${meta.ri},${meta.ei})">${lbl}</span>`
     : `<span class="pill ${cls}">${lbl}</span>`;
-  if (k !== "off" && k !== "resigned") {
-    if (e.resp) h += meta
-      ? `<div class="resp editable" ${da} data-col="${meta.respCol}" data-val="${esc(e.resp)}" onclick="inlineEdit(this,'resp',${meta.wk},${meta.ri},${meta.ei})">${esc(e.resp)}</div>`
-      : `<div class="resp">${esc(e.resp)}</div>`;
-    if (e.time) h += meta
-      ? `<div class="time editable" ${da} data-col="${meta.timeCol}" data-val="${esc(e.time)}" onclick="inlineEdit(this,'time',${meta.wk},${meta.ri},${meta.ei})">${esc(e.time)}</div>`
-      : `<div class="time">${esc(e.time)}</div>`;
+  if (k !== "resigned") {
+    // Responsibility: always show editable placeholder when in edit mode, even if empty
+    if (meta) {
+      h += `<div class="resp editable" ${da} data-col="${meta.respCol}" data-val="${esc(e.resp)}" onclick="inlineEdit(this,'resp',${meta.wk},${meta.ri},${meta.ei})">${e.resp ? esc(e.resp) : '<span style="opacity:.35;font-size:11px">+ resp</span>'}</div>`;
+    } else if (e.resp) {
+      h += `<div class="resp">${esc(e.resp)}</div>`;
+    }
+    // Time: always show editable placeholder when in edit mode, even if empty
+    if (meta) {
+      h += `<div class="time editable" ${da} data-col="${meta.timeCol}" data-val="${esc(e.time)}" onclick="inlineEdit(this,'time',${meta.wk},${meta.ri},${meta.ei})">${e.time ? esc(e.time) : '<span style="opacity:.35;font-size:11px">+ time</span>'}</div>`;
+    } else if (e.time) {
+      h += `<div class="time">${esc(e.time)}</div>`;
+    }
   }
   return h;
 }
@@ -550,14 +558,23 @@ function inlineEdit(el, field, wk, ri, ei) {
   const labels = {shift:"Shift",resp:"Responsibility",time:"Time",approved:"Status",note:"Note"};
   feLabel.textContent = labels[field] || field;
 
-  const isText = field === "note";
-  feSelect.style.display = isText ? "none" : "";
-  feText.style.display   = isText ? "" : "none";
+  const isText    = field === "note";
+  const isInput   = field === "resp" || field === "time";  // free-text + suggestions
+  const feInput   = document.getElementById("feInput");
+  const feSugg    = document.getElementById("feSuggestions");
+  feSelect.style.display = (!isText && !isInput) ? "" : "none";
+  feInput.style.display  = isInput  ? "" : "none";
+  feText.style.display   = isText   ? "" : "none";
 
   if (isText) {
     feText.value = currentVal;
+  } else if (isInput) {
+    // Free-text input with datalist suggestions from live data
+    feInput.value = currentVal;
+    const suggestions = uniqueFieldValues(field);
+    feSugg.innerHTML = suggestions.map(s => `<option value="${esc(s)}">`).join("");
   } else {
-    // Fixed options for shift and approved; derive from live data for resp/time
+    // Dropdown for shift / approved
     const SHIFT_OPTS = ["Morning", "Mid", "Night", "Off"];
     const opts = field === "approved"
       ? ["Approve", "Decline"]
@@ -565,7 +582,6 @@ function inlineEdit(el, field, wk, ri, ei) {
         ? SHIFT_OPTS
         : uniqueFieldValues(field);
     feSelect.innerHTML = "";
-    // Always add a blank/current-value fallback first if not in list
     if (!opts.includes(currentVal) && currentVal)
       feSelect.add(new Option(currentVal, currentVal, true, true));
     for (const o of opts) {
@@ -573,7 +589,6 @@ function inlineEdit(el, field, wk, ri, ei) {
       opt.selected = (o === currentVal);
       feSelect.add(opt);
     }
-    // If nothing selected yet, select by current val
     feSelect.value = currentVal;
   }
 
@@ -592,7 +607,7 @@ function inlineEdit(el, field, wk, ri, ei) {
   popup.style.top  = Math.max(8, top) + "px";
 
   _fe = { sheet, row, col, wk, ri, ei, field };
-  setTimeout(() => isText ? feText.focus() : feSelect.focus(), 50);
+  setTimeout(() => isText ? feText.focus() : isInput ? feInput.focus() : feSelect.focus(), 50);
 }
 
 async function floatSave() {
@@ -600,7 +615,10 @@ async function floatSave() {
   const { sheet, row, col, wk, ri, ei, field } = _fe;
   const feSelect = document.getElementById("feSelect");
   const feText   = document.getElementById("feText");
-  const value = field === "note" ? feText.value : feSelect.value;
+  const feInput  = document.getElementById("feInput");
+  const value = field === "note" ? feText.value
+              : (field === "resp" || field === "time") ? feInput.value
+              : feSelect.value;
   floatClose();
 
   // Update in-memory immediately
