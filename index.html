@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vendoor — Team Operations</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<!-- Export libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root { color-scheme: light;
     --teal:#0d3b3b; --teal2:#14504e; --teal3:#20504e;
@@ -53,6 +57,31 @@
   .seg { display:inline-flex; background:var(--cream2); border-radius:99px; padding:4px; margin:26px 0 20px; gap:2px; flex-wrap:wrap; }
   .seg button { border:0; background:transparent; font-family:inherit; font-size:13px; font-weight:700; padding:8px 20px; border-radius:99px; cursor:pointer; color:#5c6f6d; }
   .seg button.on { background:var(--teal); color:#fff; box-shadow:0 3px 10px rgba(13,59,59,.25); }
+  /* filter bar */
+  .fbar { display:flex; flex-wrap:wrap; align-items:flex-end; gap:18px 22px; }
+  .fgrp { display:flex; flex-direction:column; gap:7px; }
+  .fgrp > label { font-size:10px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--mut); }
+  .qperiod { display:inline-flex; background:var(--cream2); border-radius:99px; padding:3px; gap:2px; flex-wrap:wrap; }
+  .qperiod button { border:0; background:transparent; font-family:inherit; font-size:12px; font-weight:700; padding:6px 13px; border-radius:99px; cursor:pointer; color:#5c6f6d; white-space:nowrap; }
+  .qperiod button.on { background:var(--teal); color:#fff; box-shadow:0 2px 7px rgba(13,59,59,.2); }
+  .frange { display:inline-flex; align-items:center; gap:7px; }
+  .frange .dash { color:var(--mut); font-weight:700; }
+  .fspacer { flex:1 1 auto; }
+  .fsummary { font-size:12px; color:var(--mut); font-weight:600; align-self:center; }
+  .fsummary b { color:var(--teal); }
+  /* export */
+  .exp { position:relative; display:inline-block; }
+  .exp-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:99px; border:1px solid var(--line); background:#fff; color:var(--teal); font-weight:800; font-size:12px; font-family:inherit; cursor:pointer; }
+  .exp-btn:hover { background:var(--cream2); border-color:var(--teal); }
+  .exp-btn.gold { background:var(--gold); border-color:var(--gold); color:var(--teal); }
+  .exp-btn.gold:hover { background:#f6c96a; }
+  .exp-menu { position:absolute; top:calc(100% + 6px); right:0; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 8px 28px rgba(13,59,59,.16); padding:6px; min-width:170px; z-index:200; display:none; }
+  .exp-menu.open { display:block; }
+  .exp-menu button { display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:0; background:transparent; font-family:inherit; font-size:13px; font-weight:600; color:var(--ink); padding:9px 11px; border-radius:8px; cursor:pointer; }
+  .exp-menu button:hover { background:var(--cream2); }
+  .exp-menu button .fx { width:30px; height:22px; border-radius:5px; display:inline-flex; align-items:center; justify-content:center; font-size:9px; font-weight:800; color:#fff; letter-spacing:.02em; }
+  .fx.csv { background:#1a7f4b; } .fx.xlsx { background:#107c41; } .fx.pdf { background:#c0392b; } .fx.word { background:#2b579a; }
+  .exp-menu .exp-sec { font-size:9.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--mut); padding:7px 11px 3px; }
   /* cards */
   .card { background:#fff; border-radius:20px; padding:22px 24px; margin-bottom:16px; box-shadow:0 4px 18px rgba(13,59,59,.05); }
   .card h2 { font-size:15px; font-weight:800; letter-spacing:-.01em; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
@@ -212,14 +241,22 @@
   <div id="loading">Loading schedule…</div>
   <div id="app" style="display:none">
     <div class="kpis" id="kpis"></div>
-    <nav class="seg" id="tabs">
-      <button class="on" data-v="overview">Overview</button>
-      <button data-v="schedule">Schedule</button>
-      <button data-v="reports">Reports</button>
-      <button data-v="analytics">People</button>
-      <button data-v="cards">Cards</button>
-      <button data-v="log">Log</button>
-    </nav>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <nav class="seg" id="tabs">
+        <button class="on" data-v="overview">Overview</button>
+        <button data-v="schedule">Schedule</button>
+        <button data-v="reports">Reports</button>
+        <button data-v="analytics">People</button>
+        <button data-v="cards">Cards</button>
+        <button data-v="log">Log</button>
+      </nav>
+      <span class="exp"><button class="exp-btn gold">⬇ Export everything</button><div class="exp-menu" data-exp="all">
+        <div class="exp-sec">All sections together</div>
+        <button data-f="xlsx"><span class="fx xlsx">XLS</span> Excel — one file, multi-sheet</button>
+        <button data-f="pdf"><span class="fx pdf">PDF</span> PDF — all sections</button>
+        <button data-f="word"><span class="fx word">DOC</span> Word — all sections</button>
+        <button data-f="csv"><span class="fx csv">CSV</span> CSV — one file per section</button></div></span>
+    </div>
     <div id="v-overview">
       <div class="cols2">
         <div class="card">
@@ -243,19 +280,57 @@
     <div id="v-schedule" style="display:none">
       <div class="card">
         <h2><span>Weekly Schedule</span>
-          <span class="sub2"><select id="weekSel"></select> <button class="btn" id="weekDlBtn">⬇ Week PNG</button> <button class="btn" id="newWeekBtn" onclick="openNewWeek()" style="margin-left:4px">＋ New Week</button> <span id="inlineToast" style="font-size:12px;font-weight:700;margin-left:8px"></span></span></h2>
+          <span class="sub2"><select id="weekSel"></select> <button class="btn" id="weekDlBtn">⬇ Week PNG</button>
+            <span class="exp"><button class="exp-btn">⬇ Export</button><div class="exp-menu" data-exp="schedule">${""}
+              <button data-f="csv"><span class="fx csv">CSV</span> CSV (data)</button>
+              <button data-f="xlsx"><span class="fx xlsx">XLS</span> Excel (.xlsx)</button>
+              <button data-f="pdf"><span class="fx pdf">PDF</span> PDF (print)</button>
+              <button data-f="word"><span class="fx word">DOC</span> Word (.doc)</button></div></span>
+            <button class="btn" id="newWeekBtn" onclick="openNewWeek()" style="margin-left:4px">＋ New Week</button> <span id="inlineToast" style="font-size:12px;font-weight:700;margin-left:8px"></span></span></h2>
         <div style="overflow-x:auto" id="weekTable"></div>
       </div>
     </div>
     <div id="v-reports" style="display:none">
-      <div class="card" style="padding:16px 24px">
-        <h2 style="margin-bottom:0">Daily Reports
-          <span class="sub2"><select id="repMember"></select> <select id="repPeriod"></select> <span class="rangelbl">From</span> <input type="date" id="repFrom"> <span class="rangelbl">To</span> <input type="date" id="repTo"></span></h2>
+      <div class="card" style="padding:18px 24px">
+        <div class="fbar">
+          <div class="fgrp">
+            <label>Period</label>
+            <div class="qperiod" id="repQuick">
+              <button data-q="7">Last 7d</button>
+              <button data-q="30" class="on">Last 30d</button>
+              <button data-q="90">Last 90d</button>
+              <button data-q="month">This month</button>
+              <button data-q="all">All time</button>
+            </div>
+          </div>
+          <div class="fgrp">
+            <label>Custom range</label>
+            <div class="frange">
+              <input type="date" id="repFrom"><span class="dash">–</span><input type="date" id="repTo">
+            </div>
+          </div>
+          <div class="fgrp">
+            <label>Member</label>
+            <select id="repMember"></select>
+          </div>
+          <div class="fspacer"></div>
+          <div class="fsummary" id="repSummary"></div>
+          <div class="fgrp">
+            <label>Export</label>
+            <span class="exp"><button class="exp-btn gold">⬇ Export reports</button><div class="exp-menu" data-exp="reports">
+              <div class="exp-sec">Daily + Summary</div>
+              <button data-f="csv"><span class="fx csv">CSV</span> CSV (data)</button>
+              <button data-f="xlsx"><span class="fx xlsx">XLS</span> Excel (.xlsx)</button>
+              <button data-f="pdf"><span class="fx pdf">PDF</span> PDF (print)</button>
+              <button data-f="word"><span class="fx word">DOC</span> Word (.doc)</button></div></span>
+          </div>
+        </div>
       </div>
       <div id="repLoading" class="card muted" style="display:none">Loading daily reports from the team sheets…</div>
       <div id="repErr"></div>
       <div id="repBody" style="display:none">
         <div class="kpis" id="repKpis" style="margin-top:0"></div>
+        <div class="kpis" id="repKpis2" style="margin-top:14px"></div>
         <div class="cols2" style="margin-top:16px">
           <div class="card"><h2>Sales Trend <span class="sub2" id="trendSub"></span></h2><div class="chartbox" style="height:210px"><canvas id="salesChart"></canvas></div></div>
           <div class="card"><h2>Sales by Member <span class="sub2">total in selected range</span></h2><div class="chartbox" style="height:210px"><canvas id="memChart"></canvas></div></div>
@@ -267,7 +342,12 @@
     <div id="v-analytics" style="display:none">
       <div class="card" style="padding:16px 24px">
         <h2 style="margin-bottom:0">Report Filter
-          <span class="sub2"><select id="periodSel"></select> <span class="rangelbl">From</span> <input type="date" id="rangeFrom"> <span class="rangelbl">To</span> <input type="date" id="rangeTo"> <span id="rangeLabel" class="muted">full period</span></span></h2>
+          <span class="sub2"><select id="periodSel"></select> <span class="rangelbl">From</span> <input type="date" id="rangeFrom"> <span class="rangelbl">To</span> <input type="date" id="rangeTo"> <span id="rangeLabel" class="muted">full period</span>
+            <span class="exp"><button class="exp-btn">⬇ Export</button><div class="exp-menu" data-exp="analytics">
+              <button data-f="csv"><span class="fx csv">CSV</span> CSV (data)</button>
+              <button data-f="xlsx"><span class="fx xlsx">XLS</span> Excel (.xlsx)</button>
+              <button data-f="pdf"><span class="fx pdf">PDF</span> PDF (print)</button>
+              <button data-f="word"><span class="fx word">DOC</span> Word (.doc)</button></div></span></span></h2>
       </div>
       <div class="card">
         <h2>Team Overall <span class="sub2">totals for the selected period</span></h2>
@@ -1222,7 +1302,7 @@ function parseHubFromGrid(values){
     else if (c === "feedback")                  ci.fb        = i;
   });
   if (!ci.date) return [];
-  const num = v => { v=String(v||"").replace(/[,%]/g,""); if(/ref|off|^\s*-\s*$/i.test(v)) return null; const n=parseFloat(v); return isNaN(n)?null:n; };
+  const num = v => { v=String(v||"").replace(/٫/g,".").replace(/[,%]/g,""); if(/ref|off|^\s*-\s*$/i.test(v)) return null; const n=parseFloat(v); return isNaN(n)?null:n; };
   const g = (r,k) => ci[k]==null ? "" : String(r[ci[k]]||"");
   const out = [];
   for (let ri = 1; ri < values.length; ri++) {
@@ -1284,7 +1364,7 @@ function parseReport(md, member){
     const date = parseRDate(cells[cols.date]);
     if (!date) continue;
     const g = i => i == null ? "" : (cells[i] || "");
-    const num = v => { v = String(v).replace(/[,%\\]/g,""); if (/ref|off|^\s*-\s*$/i.test(v)) return null; const n = parseFloat(v); return isNaN(n) ? null : n; };
+    const num = v => { v = String(v).replace(/٫/g,".").replace(/[,%\\]/g,""); if (/ref|off|^\s*-\s*$/i.test(v)) return null; const n = parseFloat(v); return isNaN(n) ? null : n; };
     const shift = g(cols.shift);
     const row = {
       member: g(cols.member) || member, date, shift,
@@ -1436,25 +1516,45 @@ async function loadReports(force){
   reportsLoading = false;
 }
 
+function applyQuickPeriod(q){
+  const rf = document.getElementById("repFrom"), rt = document.getElementById("repTo");
+  const last = reportRows.at(-1).date;
+  if (q === "all") { rf.value = ""; rt.value = ""; return; }
+  if (q === "month") {
+    rf.value = iso(new Date(last.getFullYear(), last.getMonth(), 1));
+    rt.value = iso(new Date(last.getFullYear(), last.getMonth()+1, 0));
+    return;
+  }
+  const n = +q; // 7 / 30 / 90
+  const from = new Date(last); from.setDate(from.getDate() - (n-1));
+  rf.value = iso(from); rt.value = iso(last);
+}
+
 function setupReportsUI(){
   const ms = document.getElementById("repMember");
-  const names = [...new Set(reportRows.map(r => r.member))];
+  const names = [...new Set(reportRows.map(r => r.member))].sort();
   ms.innerHTML = '<option value="">All members</option>' + names.map(n => `<option>${esc(n)}</option>`).join("");
-  const ps = document.getElementById("repPeriod");
-  const mk = [];
-  reportRows.forEach(r => { const k = r.date.getFullYear() + "-" + r.date.getMonth(); if (!mk.some(x => x.k === k)) mk.push({ k, d: r.date }); });
-  ps.innerHTML = '<option value="all">All period</option><option value="custom" hidden>Custom</option>' +
-    mk.map(x => `<option value="m:${x.k}">${x.d.toLocaleDateString("en-US",{ month:"long", year:"numeric" })}</option>`).join("");
   const rf = document.getElementById("repFrom"), rt = document.getElementById("repTo");
   rf.min = rt.min = iso(reportRows[0].date);
   rf.max = rt.max = iso(reportRows.at(-1).date);
+  // Quick-period buttons
+  const quick = document.getElementById("repQuick");
+  quick.querySelectorAll("button").forEach(b => {
+    b.onclick = () => {
+      quick.querySelectorAll("button").forEach(x => x.classList.remove("on"));
+      b.classList.add("on");
+      applyQuickPeriod(b.dataset.q);
+      renderReports();
+    };
+  });
   ms.onchange = renderReports;
-  ps.onchange = () => {
-    if (ps.value === "all") { rf.value = ""; rt.value = ""; }
-    else if (ps.value.startsWith("m:")) { const [y,m] = ps.value.slice(2).split("-").map(Number); rf.value = iso(new Date(y,m,1)); rt.value = iso(new Date(y,m+1,0)); }
+  // Editing a custom date clears the quick-period highlight
+  rf.onchange = rt.onchange = () => {
+    quick.querySelectorAll("button").forEach(x => x.classList.remove("on"));
     renderReports();
   };
-  rf.onchange = rt.onchange = () => { ps.value = "custom"; renderReports(); };
+  // Default view: last 30 days
+  applyQuickPeriod("30");
 }
 
 function renderReports(){
@@ -1465,6 +1565,14 @@ function renderReports(){
   const S = k => rows.reduce((s,r) => s + (r[k] || 0), 0);
   const sales = S("sales"), orders = S("orders"), qty = S("qty");
   const days = rows.filter(r => r.sales != null && r.sales > 0).length;
+
+  // Filter summary line
+  const fsum = document.getElementById("repSummary");
+  if (fsum) {
+    const span = (from && to) ? `${fmtS(from)} → ${fmtS(to)}` : "all time";
+    fsum.innerHTML = `<b>${rows.length}</b> entries · <b>${span}</b>${mem ? ` · <b>${esc(mem)}</b>` : ""}`;
+  }
+
   document.getElementById("repKpis").innerHTML = [
     [fmtN(sales), "Total Sales", "EGP · " + days + " reported days"],
     [fmtN(orders), "Orders", "avg " + (days ? fmtN(orders/days) : "—") + " / day"],
@@ -1473,6 +1581,44 @@ function renderReports(){
     [fmtN(S("oos")), "Out of Stock", "flagged occurrences"],
     [fmtN(S("refunds")), "Refunds", fmtN(S("exchanges")) + " exchanges"]
   ].map(([v,l,s]) => `<div class="kpi"><div class="v" style="font-size:24px">${v}</div><div class="l">${l}</div><div class="s">${s}</div></div>`).join("");
+
+  // ── Second analytics row: deeper insight ──────────────────────────────
+  // Sales per calendar day (for best day + trend)
+  const dayTotals = {};
+  rows.forEach(r => { if (r.sales > 0) { const k = iso(r.date); dayTotals[k] = (dayTotals[k]||0) + r.sales; } });
+  const dayKeys = Object.keys(dayTotals).sort();
+  const avgDay = days ? sales/days : 0;
+  // best sales day
+  let bestK = null, bestV = -1;
+  for (const k in dayTotals) if (dayTotals[k] > bestV) { bestV = dayTotals[k]; bestK = k; }
+  // top performer (by sales) in range
+  const memSales = {};
+  rows.forEach(r => { if (r.member) memSales[r.member] = (memSales[r.member]||0) + (r.sales||0); });
+  const topMem = Object.keys(memSales).sort((a,b) => memSales[b]-memSales[a])[0];
+  // problem-day rate = reported days with any OOS/refund/exchange
+  const probDays = rows.filter(r => (r.oos||0)+(r.refunds||0)+(r.exchanges||0) > 0).length;
+  const probRate = rows.length ? Math.round(probDays/rows.length*100) : 0;
+  // trend: compare first half vs second half of the day series
+  let trendTxt = "—", trendCls = "";
+  if (dayKeys.length >= 4) {
+    const mid = Math.floor(dayKeys.length/2);
+    const avg1 = dayKeys.slice(0,mid).reduce((s,k)=>s+dayTotals[k],0)/mid;
+    const avg2 = dayKeys.slice(mid).reduce((s,k)=>s+dayTotals[k],0)/(dayKeys.length-mid);
+    if (avg1 > 0) {
+      const ch = Math.round((avg2-avg1)/avg1*100);
+      trendTxt = (ch>=0?"+":"") + ch + "%";
+      trendCls = ch>=0 ? "up" : "warn";
+    }
+  }
+  const k2 = document.getElementById("repKpis2");
+  if (k2) k2.innerHTML = [
+    [avgDay ? fmtN(avgDay) : "—", "Avg / Reported Day", "EGP mean daily sales"],
+    [bestK ? fmtN(bestV) : "—", "Best Sales Day", bestK ? fmtS(fromIso(bestK)) : "—"],
+    [`<span class="${trendCls}">${trendTxt}</span>`, "Trend", "2nd half vs 1st half"],
+    [topMem ? esc(topMem) : "—", "Top Performer", topMem ? fmtN(memSales[topMem]) + " EGP" : "—"],
+    [probRate + "%", "Problem-Day Rate", probDays + " of " + rows.length + " had OOS/ref/exch"],
+    [fmtN(S("exchanges")), "Exchanges", "total in range"]
+  ].map(([v,l,s]) => `<div class="kpi"><div class="v" style="font-size:22px">${v}</div><div class="l">${l}</div><div class="s">${s}</div></div>`).join("");
   const byDate = {};
   rows.forEach(r => { const k = iso(r.date); byDate[k] = (byDate[k] || 0) + (r.sales || 0); });
   const dk = Object.keys(byDate).sort();
@@ -1898,6 +2044,203 @@ async function doNewWeek() {
 // Close modal when clicking outside
 document.getElementById("newWeekOverlay").addEventListener("click", function(e) {
   if (e.target === this) closeNewWeek();
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   EXPORT ENGINE — CSV / XLSX / PDF / Word, per-section and global
+   A "dataset" = { title, columns:[...], rows:[[...]], rtl:bool }
+   ════════════════════════════════════════════════════════════════════ */
+function expFilename(title, ext){
+  const d = new Date();
+  const stamp = d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0");
+  return title.replace(/[^\w؀-ۿ -]/g,"").replace(/\s+/g,"_") + "_" + stamp + "." + ext;
+}
+function expDownload(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+}
+function expCSV(ds){
+  const esc = v => { v = v==null?"":String(v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  const lines = [ds.columns.map(esc).join(",")];
+  ds.rows.forEach(r => lines.push(r.map(esc).join(",")));
+  // BOM so Excel reads Arabic (UTF-8) correctly
+  expDownload(new Blob(["﻿"+lines.join("\r\n")], {type:"text/csv;charset=utf-8"}), expFilename(ds.title,"csv"));
+}
+function expXLSX(datasets){
+  // datasets = array of ds (one sheet each)
+  const list = Array.isArray(datasets) ? datasets : [datasets];
+  const wb = XLSX.utils.book_new();
+  list.forEach((ds,i) => {
+    const aoa = [ds.columns, ...ds.rows];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // column widths
+    ws["!cols"] = ds.columns.map((c,ci) => {
+      let w = String(c).length;
+      ds.rows.forEach(r => { const l = r[ci]==null?0:String(r[ci]).length; if (l>w) w=l; });
+      return { wch: Math.min(Math.max(w+2,8), 60) };
+    });
+    const name = (list.length>1 ? ds.sheet||ds.title : ds.title).replace(/[\\\/\?\*\[\]:]/g,"").slice(0,31) || ("Sheet"+(i+1));
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  });
+  const title = list.length>1 ? "Team_Dashboard" : list[0].title;
+  XLSX.writeFile(wb, expFilename(title,"xlsx"));
+}
+function expWord(datasets){
+  // HTML-based .doc — opens in Word, full Arabic/RTL support
+  const list = Array.isArray(datasets) ? datasets : [datasets];
+  let body = "";
+  list.forEach(ds => {
+    body += `<h2 style="font-family:Calibri,Arial;color:#0d3b3b">${esc(ds.title)}</h2>`;
+    body += `<table border="1" cellspacing="0" cellpadding="5" dir="${ds.rtl?"rtl":"ltr"}" style="border-collapse:collapse;font-family:Calibri,Arial;font-size:11px;width:100%">`;
+    body += "<tr style='background:#0d3b3b;color:#fff'>" + ds.columns.map(c => `<th>${esc(c)}</th>`).join("") + "</tr>";
+    ds.rows.forEach((r,i) => {
+      body += `<tr style="background:${i%2?"#f5f2ea":"#fff"}">` + r.map(c => `<td>${esc(c==null?"":String(c)).replace(/\n/g,"<br>")}</td>`).join("") + "</tr>";
+    });
+    body += "</table><br>";
+  });
+  const html = `<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"></head><body>${body}</body></html>`;
+  const title = list.length>1 ? "Team_Dashboard" : list[0].title;
+  expDownload(new Blob(["﻿"+html], {type:"application/msword"}), expFilename(title,"doc"));
+}
+function expPDF(datasets){
+  const list = Array.isArray(datasets) ? datasets : [datasets];
+  const { jsPDF } = window.jspdf;
+  // landscape for wide tables
+  const widest = Math.max(...list.map(d => d.columns.length));
+  const doc = new jsPDF({ orientation: widest > 6 ? "landscape" : "portrait", unit:"pt", format:"a4" });
+  let first = true;
+  list.forEach(ds => {
+    if (!first) doc.addPage();
+    first = false;
+    doc.setFontSize(14); doc.setTextColor(13,59,59);
+    doc.text(ds.title, 40, 40);
+    doc.setFontSize(9); doc.setTextColor(120);
+    doc.text("VENDOOR · Team Operations · " + new Date().toLocaleDateString("en-GB"), 40, 56);
+    doc.autoTable({
+      head:[ds.columns], body: ds.rows.map(r => r.map(c => c==null?"":String(c))),
+      startY:70, styles:{ fontSize:7.5, cellPadding:3, overflow:"linebreak" },
+      headStyles:{ fillColor:[13,59,59], textColor:255, fontSize:8 },
+      alternateRowStyles:{ fillColor:[245,242,234] },
+      margin:{ left:40, right:40 }
+    });
+  });
+  // Note: jsPDF's default fonts don't render Arabic glyphs. Arabic-heavy
+  // columns (e.g. feedback) may show blank in PDF — use Word/XLSX for those.
+  doc.save(expFilename(list.length>1?"Team_Dashboard":list[0].title, "pdf"));
+}
+function runExport(fmt, dsProvider){
+  const data = dsProvider();
+  if (!data || (Array.isArray(data) ? !data.length : !data.rows.length)) { alert("لا توجد بيانات للتصدير في النطاق الحالي."); return; }
+  try {
+    if (fmt==="csv"){ Array.isArray(data) ? data.forEach(expCSV) : expCSV(data); }
+    else if (fmt==="xlsx") expXLSX(data);
+    else if (fmt==="word") expWord(data);
+    else if (fmt==="pdf") expPDF(data);
+  } catch(e){ alert("تعذّر التصدير: " + e.message); }
+}
+
+/* ── Dataset collectors ─────────────────────────────────────────────── */
+function dsSchedule(){
+  const w = weeks[weekIdx]; if (!w) return null;
+  const cols = ["Day","Date", ...w.people.flatMap(p => [p.name, "Responsible", "Time"])];
+  const rows = w.rows.map(r => {
+    const base = [r.day, fmtS(r.date)];
+    r.entries.forEach(e => base.push(e.shift||"", e.resp||"", e.time||""));
+    return base;
+  });
+  return { title: "Schedule_" + w.title, columns: cols, rows, rtl:false };
+}
+function currentReportRows(){
+  const mem = document.getElementById("repMember").value;
+  const f = document.getElementById("repFrom").value, t = document.getElementById("repTo").value;
+  const from = f ? fromIso(f) : null, to = t ? fromIso(t) : null;
+  return reportRows.filter(r => (!mem || r.member===mem) && (!from || r.date>=from) && (!to || r.date<=to));
+}
+function dsReports(){
+  const rows = currentReportRows();
+  const cols = ["Date","Member","Shift","Sales","Orders","Items","AOV","Ratio","Δ Sales %","OOS","Refunds","Exchanges","First ID","Last ID","Feedback"];
+  const body = rows.map(r => [
+    fmtS(r.date), r.member, r.shift||"", r.sales??"", r.orders??"", r.qty??"",
+    r.aov!=null?r.aov:(r.sales&&r.orders?+(r.sales/r.orders).toFixed(2):""),
+    r.ratio??"", r.dSales??"", r.oos??"", r.refunds??"", r.exchanges??"",
+    r.first||"", r.last||"", r.fb||""
+  ]);
+  return { title:"Daily_Reports", columns:cols, rows:body, rtl:true };
+}
+function dsReportsSummary(){
+  // per-member aggregates for the selected range
+  const rows = currentReportRows();
+  const by = {};
+  rows.forEach(r => {
+    const m = by[r.member] || (by[r.member] = { days:0, sales:0, orders:0, qty:0, oos:0, ref:0, exc:0 });
+    if (r.sales>0) m.days++;
+    m.sales+=r.sales||0; m.orders+=r.orders||0; m.qty+=r.qty||0;
+    m.oos+=r.oos||0; m.ref+=r.refunds||0; m.exc+=r.exchanges||0;
+  });
+  const cols = ["Member","Reported Days","Total Sales","Orders","Items","AOV","OOS","Refunds","Exchanges"];
+  const body = Object.keys(by).sort((a,b)=>by[b].sales-by[a].sales).map(m => {
+    const x = by[m];
+    return [m, x.days, x.sales, x.orders, x.qty, x.orders?Math.round(x.sales/x.orders):0, x.oos, x.ref, x.exc];
+  });
+  return { title:"Reports_Summary", columns:cols, rows:body, rtl:false };
+}
+function dsAnalytics(){
+  // Per-person workload breakdown from analyze()
+  if (!A) A = analyze();
+  const cols = ["Member","Morning","Night","Mid","Off","Total Shifts","First Seen Week","Status"];
+  const body = A.per ? Object.keys(A.per).sort().map(name => {
+    const p = A.per[name] || {};
+    const m=p.morning||0, n=p.night||0, md=p.mid||0, o=p.off||0;
+    return [name, m, n, md, o, m+n+md,
+      (A.firstSeen && A.firstSeen[name]!=null ? (weeks[A.firstSeen[name]]?.title||"") : ""),
+      (A.resigned && A.resigned.has && A.resigned.has(name)) ? "Resigned" : "Active"];
+  }) : [];
+  return { title:"Analytics_Workload", columns:cols, rows:body, rtl:false };
+}
+function dsAllGlobal(){
+  // Every section as multi-sheet (xlsx/word/pdf) — skip empties
+  const out = [];
+  const s = dsSchedule(); if (s) { s.sheet="Schedule"; out.push(s); }
+  if (reportRows && reportRows.length){
+    const r = dsReports(); r.sheet="Reports"; out.push(r);
+    const rs = dsReportsSummary(); rs.sheet="Reports Summary"; out.push(rs);
+  }
+  const a = dsAnalytics(); if (a.rows.length){ a.sheet="Analytics"; out.push(a); }
+  return out;
+}
+
+/* ── Dropdown wiring ────────────────────────────────────────────────── */
+function buildExpMenu(provider){
+  return `
+    <button data-f="csv"><span class="fx csv">CSV</span> CSV (data)</button>
+    <button data-f="xlsx"><span class="fx xlsx">XLS</span> Excel (.xlsx)</button>
+    <button data-f="pdf"><span class="fx pdf">PDF</span> PDF (print)</button>
+    <button data-f="word"><span class="fx word">DOC</span> Word (.doc)</button>`;
+}
+const EXP_PROVIDERS = {
+  schedule: dsSchedule,
+  reports: () => [dsReports(), dsReportsSummary()].filter(d => d.rows.length),
+  analytics: dsAnalytics,
+  all: dsAllGlobal
+};
+function toggleExpMenu(btn){
+  document.querySelectorAll(".exp-menu.open").forEach(m => { if (m!==btn.nextElementSibling) m.classList.remove("open"); });
+  btn.nextElementSibling.classList.toggle("open");
+}
+document.addEventListener("click", e => {
+  const btn = e.target.closest(".exp-btn");
+  if (btn){ toggleExpMenu(btn); return; }
+  const item = e.target.closest(".exp-menu button");
+  if (item){
+    const menu = item.closest(".exp-menu");
+    const key = menu.dataset.exp;
+    runExport(item.dataset.f, EXP_PROVIDERS[key]);
+    menu.classList.remove("open");
+    return;
+  }
+  document.querySelectorAll(".exp-menu.open").forEach(m => m.classList.remove("open"));
 });
 
 load();
